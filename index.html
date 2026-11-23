@@ -422,7 +422,7 @@
     </details>
   </main>
   <footer class="container">
-    データ：<a href="https://docs.google.com/spreadsheets/d/e/2PACX-1vREVbtsNnID6TnDwH_DC_yKl-vBssrOScAzhOcDF3nH7UGo3ywAxDndcQdF7qf-hsYCtL2AAzT65F9p/pub?gid=1808485276&amp;single=true&amp;output=csv" target="_blank" rel="noopener noreferrer">日本の滝百選データ</a>。
+    データ：<a href="https://docs.google.com/spreadsheets/d/e/2PACX-1vQL_jMshioyyU2QlAns4KW6xjrOBsyCq0VjszIQy7EWuooWckuFFF713H_XbRSCIe-eii6PmUzcNDdR/pub?gid=1469396044&amp;single=true&amp;output=csv" target="_blank" rel="noopener noreferrer">日本の滝百選データ</a>。
     海岸線：<a href="https://www.soest.hawaii.edu/wessel/gshhg/" target="_blank" rel="noopener noreferrer">GSHHG（LGPL）</a>。
     県境：<a href="https://github.com/kyodo-official/japan-choropleth" target="_blank" rel="noopener noreferrer">共同通信社 japan-choropleth</a>（<a href="https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-N03-2025.html" target="_blank" rel="noopener noreferrer">国土交通省 国土数値情報</a>／<a href="https://creativecommons.org/licenses/by/4.0/deed.ja" target="_blank" rel="noopener noreferrer">CC BY 4.0</a>）。<br>
     掲載位置は目安です。現地の道路・アクセス情報は最新の公式情報をご確認ください。
@@ -432,8 +432,8 @@
   <script>
     'use strict';
     // データ元はGoogleスプレッドシート。URLが変更になったらここだけ更新する。
-    const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vREVbtsNnID6TnDwH_DC_yKl-vBssrOScAzhOcDF3nH7UGo3ywAxDndcQdF7qf-hsYCtL2AAzT65F9p/pub?gid=1808485276&single=true&output=csv';
-    const SHEET_GID = '1808485276';
+    const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQL_jMshioyyU2QlAns4KW6xjrOBsyCq0VjszIQy7EWuooWckuFFF713H_XbRSCIe-eii6PmUzcNDdR/pub?gid=1469396044&single=true&output=csv';
+    const SHEET_GID = '1469396044';
     const SHEET_BASE = SHEET_CSV_URL.split('/pub?')[0];
     // 都道府県境界: 共同通信社 japan-choropleth の 47 都道府県 GeoJSON。
     // 元データ: 国土交通省 国土数値情報（行政区域データ、2025年、CC BY 4.0）。
