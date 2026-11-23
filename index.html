@@ -1,0 +1,1391 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta name="description" content="日本の滝百選を地図で探せる情報サイト。全国100選定地の所在地や筆者の訪問記録を紹介します。">
+  <title>日本の滝百選 MAP｜全国の名瀑を探す</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="anonymous">
+  <style>
+    :root{--green:#174b3a;--mid:#28654c;--paper:#f5f7f4;--text:#233b30;--muted:#637569}
+    *{box-sizing:border-box}
+    body{margin:0;color:var(--text);background:var(--paper);font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN',Meiryo,sans-serif}
+    a{color:#216448} a:focus-visible,button:focus-visible{outline:3px solid #e2ab4c;outline-offset:3px}
+    .container{width:min(1220px,calc(100% - 32px));margin:auto}
+    header{background:var(--green);color:white;padding:24px 0}
+    .eyebrow{margin:0 0 6px;color:#c1ded0;font-size:11px;letter-spacing:.15em}
+    h1{font-size:clamp(24px,3vw,36px);margin:0 0 7px}
+    .subtitle{margin:0;color:#e4efe9;font-size:13px}
+    main{padding:22px 0 30px}
+    .toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px;font-size:13px}
+    .step{border-radius:40px;background:#def0e6;color:#19583e;font-size:12px;font-weight:700;padding:7px 12px}
+    .count{margin-left:auto;color:#245b42;font-weight:700}
+    .notice{padding:13px 16px;background:#eaf2ec;border:1px solid #d6e7d9;border-radius:12px;font-size:13px;line-height:1.75;margin-bottom:15px}
+    .notice.warn{background:#fff7eb;border-color:#f2dfbc}
+    .sheet-refresh{border:1px solid #b6d4c3;background:#fff;color:#195d43;border-radius:9px;padding:9px 13px;min-height:39px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
+    .sheet-refresh:hover{background:#e5f2e9}
+    .sheet-refresh:disabled{opacity:.55;cursor:wait}
+    .source-detail{font-size:12px;color:#5b6f60;margin:-7px 0 14px}
+
+    .csv-manual{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:-3px 0 16px;background:#fff;border:1px dashed #b9d1bf;border-radius:12px;padding:14px 16px;font-size:13px;line-height:1.7}
+    .csv-manual[hidden]{display:none}
+    .csv-pick-button{background:#1d6248;color:white;border-radius:9px;font-size:13px;font-weight:700;padding:11px 16px;cursor:pointer;display:inline-block}
+    .csv-pick-button:hover{background:#144b35}
+    .csv-picker{max-width:100%;font-size:12px}
+    .csv-help{color:#526b59;flex:1 1 250px}
+    .filter-box{background:#fff;border:1px solid #dce4dd;border-radius:14px;padding:16px 18px;margin-bottom:16px;box-shadow:0 8px 24px rgba(29,61,42,.04)}
+    .filter-head{display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;justify-content:space-between;margin-bottom:11px}
+    .filter-head h2{font-size:16px;margin:0;color:#245c42}
+    .filter-result{font-size:12px;font-weight:700;color:#28654c}
+    .filter-row{display:grid;grid-template-columns:minmax(0,2fr) minmax(130px,1fr) minmax(130px,1fr) auto;gap:12px;align-items:end}
+    .filter-item{display:flex;flex-direction:column;gap:6px;min-width:0}
+    .filter-item label{font-size:12px;font-weight:700;color:#475e4e}
+    .filter-item input,.filter-item select{width:100%;min-height:43px;min-width:0;padding:10px 12px;border:1px solid #b9cfc0;border-radius:9px;font:inherit;font-size:14px;color:var(--text);background:#fff}
+    .filter-item input:focus,.filter-item select:focus{outline:2px solid #8db8a3;outline-offset:1px}
+    .reset-button{min-height:43px;padding:10px 16px;border:1px solid #bdd2c3;border-radius:9px;background:#edf5ef;color:#285d42;font-size:13px;font-weight:700;cursor:pointer}
+    .reset-button:hover{background:#dbeddf}
+    .filter-tip{font-size:11px;color:#728075;margin:10px 0 0}
+    .empty-result{padding:16px;background:#f6f8f6;border-radius:10px;color:#68786c;font-size:13px;line-height:1.6}
+    .layout{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(290px,1fr);gap:16px;align-items:start}
+    .map-frame,.panel,.list-frame{background:#fff;border:1px solid #dce4dd;border-radius:16px;overflow:hidden;box-shadow:0 8px 24px rgba(29,61,42,.06)}
+    #map{height:625px;width:100%}
+    .map-caption{padding:12px 16px;color:#607467;font-size:12px;line-height:1.6}
+    .panel{min-height:420px}
+    .photo-box{position:relative;height:230px;background:linear-gradient(135deg,#cce1d7,#e8f1e8)}
+    .photo-box img{width:100%;height:100%;object-fit:cover;display:block}
+    .photo-box img[hidden],.photo-fallback[hidden]{display:none}
+    .photo-fallback{position:absolute;inset:0;display:flex;justify-content:center;align-items:center;text-align:center;padding:18px;color:#416b54;font-size:13px;line-height:1.7}
+    .symbol{font-size:38px;display:block;margin-bottom:4px}
+    .card-body{padding:20px}
+    .card-label{font-size:11px;font-weight:700;color:#3b7854;letter-spacing:.08em}
+    h2{font-size:25px;margin:8px 0 4px}
+    .location{color:var(--muted);font-size:13px;margin:0 0 15px}
+    .facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-bottom:17px}
+    .fact{border:1px solid #e5ede6;background:#f8fbf8;padding:10px 12px;border-radius:10px}
+    .fact-label{font-size:11px;color:#6b7d71;margin-bottom:4px}
+    .fact-value{font-size:15px;font-weight:700}
+    h3{font-size:13px;color:#245c42;margin:17px 0 6px}
+    .paragraph{font-size:13px;line-height:1.85;margin:0}
+    .memo{border-left:3px solid #9cc5a8;padding-left:11px;color:#475e4e;font-size:12px;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere}
+    .visit-overview{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:9px 0 13px}
+    .visit-tag{display:inline-flex;align-items:center;border-radius:50px;padding:5px 10px;background:#eef1ef;color:#5b6b60;font-size:12px;font-weight:700}
+    .visit-tag.done{background:#daf2e3;color:#18583c}
+    .visit-meta{font-size:12px;color:#526c5b}
+    .visit-summary{border-radius:20px;background:#e0f0e6;border:1px solid #cbe3d2;padding:6px 10px;font-size:12px;font-weight:700;color:#205a40}
+    .legend{display:flex;gap:16px;align-items:center;flex-wrap:wrap;font-size:11px;color:#5c7062}
+    .legend-dot{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:5px;vertical-align:middle;border:1px solid white;box-shadow:0 0 0 1px #b1bcb3}
+    .legend-dot.done{background:#218451}.legend-dot.pending{background:#d5a339}.legend-dot.todo{background:#778799}
+    .visit-tag.pending{background:#fff1cf;color:#765211}
+    .editor-box{margin-top:16px;background:#fff;border:1px solid #dce4dd;border-radius:16px;padding:19px;box-shadow:0 8px 24px rgba(29,61,42,.05)}
+    .editor-box[hidden]{display:none}
+    .editor-box summary{font-size:16px;font-weight:700;color:#245c42;cursor:pointer}
+    .editor-body{padding-top:13px}
+    .editor-help{font-size:12px;line-height:1.8;color:#596b5e}
+    .editor-warning{background:#fff7eb;border:1px solid #f0d9ae;border-radius:10px;padding:11px 13px;font-size:12px;line-height:1.8;color:#725528}
+    .editor-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0}
+    .editor-field{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:700;color:#506857}
+    .editor-field input:not([type=checkbox]),.editor-field select,.editor-field textarea{border:1px solid #b9cfc0;border-radius:8px;padding:10px;width:100%;font:inherit;font-size:14px;color:var(--text);background:#fff}
+    .editor-field textarea{min-height:115px;resize:vertical;line-height:1.6}
+    .editor-actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:14px}
+    .edit-btn{cursor:pointer;border:1px solid #bdd2c3;border-radius:9px;background:#edf5ef;color:#245b41;font-size:13px;font-weight:700;padding:11px 14px}
+    .edit-btn.primary{background:#1d6248;border-color:#1d6248;color:white}
+    .edit-btn.danger{background:#fff;color:#975045;border-color:#e7c5bb}
+    .edit-btn:hover{filter:brightness(.96)}
+    .edit-btn:disabled{opacity:.4;cursor:not-allowed}
+    .editor-fieldset{border:0;margin:0;padding:0;min-width:0}
+    .editor-fieldset:disabled{opacity:.55}
+    .editor-status{font-size:12px;color:#35624b;line-height:1.6;margin:12px 0 0}
+    .editor-status.error{color:#a52c26}
+    .editor-separator{border:0;border-top:1px solid #e3ebe5;margin:19px 0 13px}
+    .import-label{display:inline-block;position:relative;overflow:hidden;cursor:pointer;border:1px solid #bdd2c3;border-radius:9px;background:#fff;padding:10px 14px;font-size:13px;font-weight:700;color:#245b41}
+    .import-label input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+    .import-label:focus-within{outline:3px solid #e2ab4c;outline-offset:3px}
+    .links{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:17px}
+    .button-link{display:flex;justify-content:center;align-items:center;padding:11px 8px;border-radius:9px;font-size:12px;font-weight:700;text-align:center;text-decoration:none;border:1px solid #cee0d3}
+    .button-link.primary{background:#1d6248;color:white;border-color:#1d6248}
+    .button-link[hidden]{display:none}
+    .credit{margin-top:14px;padding-top:12px;border-top:1px solid #e6ebe6;font-size:10px;line-height:1.7;color:#758278}
+    .list-frame{margin-top:16px;padding:17px}
+    .list-frame h3{margin:0 0 7px;font-size:16px}
+    .list-frame p{margin:0 0 14px;font-size:12px;color:#6c8071;line-height:1.7}
+    .select-list{display:flex;flex-wrap:wrap;gap:7px;max-height:280px;overflow-y:auto;align-content:flex-start;padding:2px}
+    .select-list button{font:inherit;font-size:12px;background:white;color:#245a42;border:1px solid #cadbd0;padding:8px 11px;cursor:pointer;border-radius:22px}
+    .select-list button.active{background:var(--green);color:white;border-color:var(--green)}
+    .select-list button.nocoords{color:#777;border-style:dashed}
+    .hint{font-size:11px;color:#7b7b75;margin-top:9px}
+    footer{padding:0 0 28px;font-size:11px;color:#63756b;line-height:1.85}
+    .error{color:#aa302a;font-weight:700}
+    .popup-title{font-size:14px;font-weight:700;margin-bottom:3px}
+    .popup-sub{color:#65816f;font-size:12px}
+    @media(max-width:650px){.filter-row{grid-template-columns:1fr 1fr}.filter-item.search{grid-column:1 / -1}.reset-button{grid-column:1 / -1}.editor-grid{grid-template-columns:1fr}}
+    @media(max-width:850px){.layout{grid-template-columns:1fr}#map{height:50vh;min-height:340px;max-height:510px}.photo-box{height:245px}.count{margin-left:0}}
+    @media(max-width:480px){.photo-box{height:210px}.links{grid-template-columns:1fr}.card-body{padding:17px}}
+
+    /* STEP 7: パソコンでは今まで通りの右側カード。スマホだけ下から開くカードに。 */
+    .mobile-detail-bar,.sheet-controls,.sheet-backdrop{display:none}
+    .mobile-detail-bar button,.sheet-close{font:inherit;cursor:pointer}
+    .mobile-detail-bar button:focus-visible,.sheet-close:focus-visible{outline:3px solid #e2ab4c;outline-offset:2px}
+    @media(max-width:850px){
+      .container{width:min(100% - 24px,720px)}
+      header{padding:20px 0}
+      main{padding:14px 0 24px}
+      .toolbar{gap:8px;margin-bottom:12px}
+      .count{margin-left:0}
+      .notice{font-size:12px;padding:11px 13px}
+      .filter-box{padding:14px;margin-bottom:12px}
+      .filter-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+      .filter-item.search{grid-column:1 / -1}
+      .reset-button{grid-column:1 / -1}
+      .filter-item input,.filter-item select{min-height:46px;font-size:16px}
+      .reset-button,.edit-btn,.import-label{min-height:44px}
+      #map{height:52vh;height:52svh;min-height:320px;max-height:500px}
+      .map-caption{padding:10px 13px;font-size:11px}
+      .map-frame,.list-frame{border-radius:14px}
+      .mobile-detail-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;background:#edf5ef;border-top:1px solid #dce9df}
+      .mobile-detail-bar>span{min-width:0;flex:1;font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      .mobile-detail-bar button{flex-shrink:0;min-height:44px;padding:9px 12px;background:#1d6248;color:white;border:0;border-radius:10px;font-size:12px;font-weight:700}
+      .sheet-backdrop{display:block;position:fixed;inset:0;background:rgba(15,39,28,.53);z-index:1998;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .22s ease,visibility .22s ease}
+      .sheet-backdrop.is-open{opacity:1;visibility:visible;pointer-events:auto}
+      .panel{position:fixed;inset:auto 0 0 0;z-index:1999;min-height:0;max-height:85vh;max-height:85dvh;overflow:auto;overscroll-behavior:contain;border-radius:20px 20px 0 0;border:0;box-shadow:0 -10px 40px rgba(0,0,0,.2);transform:translateY(110%);visibility:hidden;pointer-events:none;transition:transform .24s ease,visibility .24s ease;scrollbar-gutter:stable}
+      .panel.is-open{transform:translateY(0);visibility:visible;pointer-events:auto}
+      .sheet-controls{display:flex;align-items:center;position:sticky;top:0;z-index:3;gap:12px;min-height:56px;padding:9px 16px;background:#fff;border-bottom:1px solid #e3eae4}
+      .sheet-grip{width:34px;height:4px;border-radius:12px;background:#b8c9bd;flex-shrink:0}
+      .sheet-label{font-weight:700;font-size:13px;color:#2e5b42;flex:1}
+      .sheet-close{min-width:72px;min-height:42px;background:#eef4ef;border:0;border-radius:10px;color:#245b41;font-size:13px;font-weight:700}
+      .sheet-close span{font-size:18px;vertical-align:-1px}
+      .panel .photo-box{height:220px}
+      .panel .card-body{padding:18px 18px calc(26px + env(safe-area-inset-bottom,0px))}
+      .select-list{max-height:265px}
+      .select-list button{min-height:44px;padding:11px 13px;font-size:13px}
+      .editor-box{padding:15px}
+      .editor-field input:not([type=checkbox]),.editor-field select,.editor-field textarea{font-size:16px;min-height:44px}
+      body.sheet-open{overflow:hidden}
+    }
+    @media(max-width:560px){
+      .filter-row{grid-template-columns:1fr}
+      .filter-item.search,.reset-button{grid-column:auto}
+      .toolbar .count{width:100%;font-size:12px}
+      .toolbar .visit-summary{margin-left:0}
+      #map{height:48vh;height:48svh;min-height:315px;max-height:475px}
+      .links{grid-template-columns:1fr}
+      .editor-grid{grid-template-columns:1fr}
+      .editor-actions{align-items:stretch}
+      .editor-actions .edit-btn,.editor-actions .import-label{flex:1 1 160px;text-align:center}
+      .list-frame{padding:14px}
+      .panel .photo-box{height:200px}
+    }
+    /* STEP 7改良：スマホでは地域タブを主役にし、詳細検索は必要時だけ展開。 */
+    .region-nav,.mobile-filter-toggle{display:none}
+    @media(max-width:850px){
+      .mobile-filter-toggle{display:inline-flex;align-items:center;min-height:40px;background:#edf5ef;border:1px solid #c9dece;border-radius:9px;padding:7px 12px;color:#245c42;font-size:12px;font-weight:700;cursor:pointer}
+      .filter-box:not(.is-expanded) .filter-row,.filter-box:not(.is-expanded) .filter-tip{display:none}
+      .filter-head{align-items:center;gap:8px;margin-bottom:0}
+      .filter-box.is-expanded .filter-head{margin-bottom:11px}
+      .filter-result{order:3;width:100%}
+      .region-nav{display:block;background:#fff;border:1px solid #dce4dd;border-radius:14px;padding:13px 12px 9px;margin-bottom:12px;box-shadow:0 8px 24px rgba(29,61,42,.05)}
+      .region-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:9px}
+      .region-head strong{font-size:15px;color:#245c42}
+      .region-head span{font-size:11px;color:#67796d}
+      .region-tabs{display:flex;gap:8px;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x proximity;scrollbar-width:thin;scrollbar-color:#bad1c1 transparent;padding:3px 2px 12px;white-space:nowrap;-webkit-overflow-scrolling:touch}
+      .region-tabs button{flex:0 0 auto;min-height:44px;scroll-snap-align:start;border:1px solid #cadccf;border-radius:999px;padding:10px 14px;background:#f5f8f5;color:#255b40;font:inherit;font-size:13px;font-weight:700;cursor:pointer;transition:background .18s ease}
+      .region-tabs button[aria-pressed="true"]{background:#174b3a;border-color:#174b3a;color:white;box-shadow:0 3px 9px rgba(23,75,58,.22)}
+      .region-tabs button:focus-visible{outline:3px solid #e2ab4c;outline-offset:2px}
+      .region-count{font-size:11px;opacity:.83;margin-left:5px;font-weight:600}
+    }
+    @media(prefers-reduced-motion:reduce){
+      .panel,.sheet-backdrop{transition:none}
+    }
+
+    /* 日本だけの地図。沖縄は地図の上に重ねず、専用の区画へ表示する。 */
+    .map-canvas{
+      display:grid;
+      grid-template-columns:minmax(0,1fr);
+      grid-template-areas:"main";
+      background:linear-gradient(145deg,#e5f4f3 0%,#eaf5f0 52%,#dceee8 100%);
+      overflow:hidden;
+      min-width:0;
+    }
+    #map{grid-area:main;min-width:0;background:transparent;z-index:1}
+    .map-canvas .leaflet-container{background:transparent;font-family:inherit}
+    .map-canvas .leaflet-control-zoom{border:1px solid #c4ddd2;box-shadow:0 3px 12px rgba(24,65,47,.1)}
+    .map-canvas .leaflet-control-zoom a{color:#245a44;background:#fff}
+    /* 沖縄表示時だけ、本土と重ならない左の専用カラムを出現させる */
+    .map-canvas.has-okinawa{
+      grid-template-columns:minmax(165px,26%) minmax(0,1fr);
+      grid-template-areas:"inset main";
+    }
+    .okinawa-inset{
+      grid-area:inset;
+      display:none;
+      position:relative;
+      min-width:0;
+      width:auto;
+      height:212px;
+      margin:0 8px 22px 12px;
+      align-self:end;
+      overflow:hidden;
+      border:1px solid #bad6c9;
+      border-radius:14px;
+      background:#f8fcf8;
+      box-shadow:0 6px 18px rgba(36,92,69,.12);
+    }
+    .okinawa-inset.is-visible{display:block}
+    /* 枠の外に描かず、区画の中で完結する簡素なガイドライン */
+    .okinawa-inset::after{
+      content:"";
+      position:absolute;
+      z-index:1;
+      pointer-events:none;
+      inset:auto 0 0 auto;
+      width:24px;
+      height:25px;
+      border-right:2px dashed #7aaf98;
+      border-bottom:2px dashed #7aaf98;
+      opacity:.6;
+      border-radius:0 0 10px 0;
+    }
+    .okinawa-caption{
+      position:absolute;top:0;left:0;right:0;z-index:410;
+      display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 8px;
+      background:rgba(255,255,255,.95);
+      border-bottom:1px solid #d8e8de;padding:8px 10px;
+      pointer-events:none;
+    }
+    .okinawa-caption strong{font-size:12px;color:#225a41}
+    .okinawa-caption small{font-size:9px;color:#698776}
+    #okinawa-map{width:100%;height:100%;background:transparent}
+    .okinawa-inset .leaflet-popup-content-wrapper{border-radius:10px}
+    /* タブレットでは少し小さな別枠 */
+    @media(max-width:850px){
+      .map-canvas.has-okinawa{grid-template-columns:minmax(150px,26%) minmax(0,1fr)}
+      .okinawa-inset{height:180px;margin:0 6px 18px 10px}
+      .okinawa-caption{padding:7px 8px}
+      .okinawa-caption strong{font-size:11px}
+      .okinawa-caption small{font-size:8px}
+    }
+    /* スマホは沖縄を地図の下へ。地図が縮みすぎず、重なりは一切発生しない。 */
+    @media(max-width:620px){
+      .map-canvas.has-okinawa{
+        grid-template-columns:minmax(0,1fr);
+        grid-template-rows:auto 182px;
+        grid-template-areas:"main" "inset";
+      }
+      .okinawa-inset{
+        height:166px;
+        width:auto;
+        margin:8px 10px 10px;
+        align-self:stretch;
+      }
+      .okinawa-caption{padding:7px 10px}
+    }
+  </style>
+</head>
+<body>
+  <header><div class="container">
+    <p class="eyebrow">WATERFALLS OF JAPAN</p>
+    <h1>日本の滝百選 MAP</h1>
+    <p class="subtitle">日本全国の名瀑を、地図から巡る。</p>
+  </div></header>
+  <main class="container">
+    <div class="toolbar">
+      <span class="step" id="step-label">日本の滝百選</span>
+      <span>日本だけを表示。沖縄は必要なときだけ別枠に表示します。</span>
+      <button class="sheet-refresh" id="sheet-refresh" type="button" title="Googleスプレッドシートの最新内容を読み込む">↻ 最新データを取得</button>
+      <span class="count">登録：<span id="waterfall-count">5</span>選定地 / ピン：<span id="pin-count">5</span>か所</span>
+      <span class="visit-summary" id="visit-summary">訪問記録：CSV読込待ち</span>
+    </div>
+    <div class="notice" id="load-status" role="status" aria-live="polite">
+      Googleスプレッドシートから滝100選定地を自動取得しています。
+    </div>
+    <p class="source-detail">滝データは公開Googleスプレッドシートから読み込みます。公開後もシートを更新するだけで、ページ再表示または「最新データを取得」で反映できます。</p>
+    <div class="csv-manual" id="csv-manual" hidden>
+      <div class="csv-help"><strong>読み込めない場合の予備操作</strong><br>Googleスプレッドシートに接続できない場合は、①から手元の <strong>滝百選_マップ取込用.csv</strong> を選択できます。②は座標が欠けているときだけ利用します。手動で選んだCSVはサイト利用者ごとの一時表示です。</div>
+      <label>① 滝データ <input id="csv-picker" class="csv-picker" type="file" accept=".csv,text/csv" aria-label="滝百選_マップ取込用.csvを選択"></label>
+      <label>② 座標補完（任意） <input id="coords-picker" class="csv-picker" type="file" accept=".csv,text/csv" aria-label="従来のtaki02.csvを選択"></label>
+    </div>
+    <!-- STEP 7改良：スマホ専用。横スクロールのエリア切り替えタブ -->
+    <nav class="region-nav" id="region-nav" aria-label="地域から滝を探す">
+      <div class="region-head">
+        <strong>エリアから探す</strong>
+        <span>横にスワイプして選択 →</span>
+      </div>
+      <div class="region-tabs" id="region-tabs" aria-label="日本の地域を選択"></div>
+    </nav>
+    <!-- 検索・絞り込み（STEP 5・6） -->
+    <section class="filter-box" aria-label="滝の検索と絞り込み">
+      <div class="filter-head">
+        <h2>滝を探す</h2>
+        <span class="filter-result" id="filter-count" role="status" aria-live="polite">表示：5件 / 全5件</span>
+        <button class="mobile-filter-toggle" id="mobile-filter-toggle" type="button" aria-controls="filter-controls" aria-expanded="false">詳細検索を開く ＋</button>
+      </div>
+      <div class="filter-row" id="filter-controls">
+        <div class="filter-item search">
+          <label for="search-input">滝の名前を検索</label>
+          <input id="search-input" type="search" autocomplete="off" placeholder="例：那智、華厳、袋田" />
+        </div>
+        <div class="filter-item">
+          <label for="prefecture-select">都道府県</label>
+          <select id="prefecture-select"><option value="">全国すべて</option></select>
+        </div>
+        <div class="filter-item">
+          <label for="visit-filter">筆者の訪問状況</label>
+          <select id="visit-filter"><option value="">すべて</option><option value="visited">訪問済み</option><option value="unvisited">未訪問（未記録）</option><option value="pending">訪問記録あり・要確認</option></select>
+        </div>
+        <button class="reset-button" id="reset-filter" type="button">条件をクリア</button>
+      </div>
+      <p class="filter-tip">名前・都道府県・攻略状況で絞り込めます。エリアタブを変更すると名前・都道府県はリセットされます。</p>
+    </section>
+    <div class="layout">
+      <section class="map-frame" aria-label="日本の滝百選マップ">
+        <div class="map-canvas" aria-label="日本のみを表示した地図。沖縄は必要なときだけ別枠表示します">
+          <div id="map" role="application" aria-label="北海道から九州までの滝の地図"></div>
+          <!-- 別枠は地図に重ねず、CSS Grid の専用スペースへ配置する -->
+          <div class="okinawa-inset" id="okinawa-inset" aria-label="沖縄の滝の別枠地図" aria-hidden="true">
+            <div class="okinawa-caption"><strong>沖縄・先島諸島</strong><small>※ 位置を移動して表示</small></div>
+            <div id="okinawa-map" role="application" aria-label="沖縄の滝の地図"></div>
+          </div>
+        </div>
+        <div class="mobile-detail-bar" aria-label="選択した滝の情報">
+          <span id="mobile-selected-name">滝を選択してください</span>
+          <button id="show-mobile-detail" type="button">情報を見る <span aria-hidden="true">↗</span></button>
+        </div>
+        <div class="map-caption"><div class="legend"><span><i class="legend-dot done"></i>攻略確認済み</span><span><i class="legend-dot pending"></i>記録あり・要確認</span><span><i class="legend-dot todo"></i>未訪問</span></div>ピンを押すと情報が切り替わります。沖縄は九州・沖縄タブや沖縄の滝を選んだとき、地図と重ならない専用区画に表示します。座標は参考位置です。</div>
+      </section>
+      <div class="sheet-backdrop" id="sheet-backdrop" aria-hidden="true"></div>
+      <aside class="panel" id="detail-panel" aria-live="polite" aria-label="選択した滝の情報">
+        <div class="sheet-controls">
+          <div class="sheet-grip" aria-hidden="true"></div>
+          <span class="sheet-label">滝の情報</span>
+          <button class="sheet-close" id="sheet-close" type="button" aria-label="滝の情報を閉じる">閉じる <span aria-hidden="true">×</span></button>
+        </div>
+        <div class="photo-box">
+          <img id="photo" alt="" hidden>
+          <div class="photo-fallback" id="photo-fallback"><div><span class="symbol">💧</span><span id="fallback-message">滝を選択してください</span></div></div>
+        </div>
+        <div class="card-body">
+          <div class="card-label">JAPAN TOP 100 WATERFALLS</div>
+          <h2 id="detail-name">滝を選択してください</h2>
+          <p class="location" id="detail-place">地図のピンか、下の一覧から選んでください</p>
+          <div class="facts">
+            <div class="fact"><div class="fact-label">落差（参考）</div><div class="fact-value" id="detail-height">—</div></div>
+            <div class="fact"><div class="fact-label">都道府県</div><div class="fact-value" id="detail-prefecture">—</div></div>
+          </div>
+          <h3>滝の特徴</h3><p class="paragraph" id="detail-description">滝の情報がここに表示されます。</p>
+          <h3>アクセスのヒント</h3><p class="paragraph" id="detail-access">現地の最新情報は自治体・公式観光サイトで確認してください。</p>
+          <h3>筆者の訪問記録</h3>
+          <div class="visit-overview"><span class="visit-tag" id="detail-visited">未訪問</span><span class="visit-meta" id="detail-visit-date">訪問日：未登録</span><span class="visit-meta" id="detail-rating">おすすめ度：未登録</span><span class="visit-meta" id="detail-progress">攻略状態：未確認</span><span class="visit-meta" id="detail-ease">アクセス快適度：未登録</span></div>
+          <h3>筆者のメモ</h3><p class="memo" id="detail-memo">メモはまだありません。</p>
+          <div class="links">
+            <a class="button-link primary" id="official-link" href="#" target="_blank" rel="noopener noreferrer" hidden>公式観光情報 ↗</a>
+            <a class="button-link" id="map-link" href="#" target="_blank" rel="noopener noreferrer" hidden>Googleマップで参考位置を見る ↗</a>
+          </div>
+          <div class="credit" id="photo-credit">写真の出典は、写真がある場合に表示します。</div>
+        </div>
+      </aside>
+    </div>
+    <section class="list-frame" aria-label="滝の一覧">
+      <h3>滝の一覧（検索結果）</h3>
+      <p>検索条件に合う滝だけを表示します。名前を押すと地図がその場所へ移動します。位置未確認の滝も一覧で確認できます。</p>
+      <div class="select-list" id="waterfall-buttons"></div>
+      <div class="hint">※ 名前の枠が点線の場合は、緯度・経度が未確認です。データは今回のCSVの座標欄が空の場合は、従来のtaki02.csvから名称・都道府県一致で補完できます。</div>
+    </section>
+    <details class="editor-box" id="editor-box" hidden>
+      <summary>✏️ 筆者用：訪問記録を編集する（ローカル保存）</summary>
+      <div class="editor-body">
+        <p class="editor-warning"><strong>この編集欄は練習用です。</strong> 保存しても、このブラウザにしか反映されません。公開サイトのデータを編集する機能ではありません。一般公開前には編集欄を非表示にするか、WordPressの管理画面に移します。</p>
+        <p class="editor-help">滝を地図か一覧から選んで入力します。編集できるのは百選100件のCSV読み込み後です。新CSVの「要確認」は訪問済みと自動判定しません。写真は自分が撮影したもの、または使用許可のあるものを指定してください。</p>
+        <form id="visit-form">
+          <fieldset id="visit-fieldset" class="editor-fieldset" disabled>
+            <p><strong id="edit-target">滝を選択してください</strong></p>
+            <label class="editor-field"><span><input id="edit-visited" type="checkbox"> この滝を訪問済みにする</span></label>
+            <div class="editor-grid">
+              <label class="editor-field">訪問日<input id="edit-date" type="date"></label>
+              <label class="editor-field">おすすめ度（5段階）<select id="edit-rating"><option value="">未設定</option><option value="1">★ 1</option><option value="2">★★ 2</option><option value="3">★★★ 3</option><option value="4">★★★★ 4</option><option value="5">★★★★★ 5</option></select></label>
+            </div>
+            <label class="editor-field">訪問メモ<textarea id="edit-memo" maxlength="1000" placeholder="例：滝までの遊歩道が歩きやすかった。紅葉の時期に再訪したい。"></textarea></label>
+            <div class="editor-grid"><label class="editor-field">自分の写真のファイルパス（任意）<input id="edit-photo" type="text" placeholder="images/nachi.jpg" autocomplete="off"></label></div>
+            <p class="editor-help">写真の追加方法：作業フォルダに <code>images</code> というフォルダを作り、撮影した画像（例：<code>nachi.jpg</code>）を入れてください。上の欄には <code>images/nachi.jpg</code> と入力します。https:// で始まる許諾済み画像URLも使用できます。</p>
+            <div class="editor-actions"><button class="edit-btn primary" type="submit">この滝の記録を保存</button><button class="edit-btn danger" id="delete-visit" type="button">この滝のローカル記録を削除</button></div>
+          </fieldset>
+        </form>
+        <hr class="editor-separator">
+        <p class="editor-help"><strong>バックアップ：</strong> ブラウザの保存データは削除される場合があります。登録後はJSONとしてダウンロードしてください。JSONには訪問日・メモ・写真のパスが含まれます。</p>
+        <div class="editor-actions"><button class="edit-btn" id="export-visits" type="button">訪問記録をJSONで保存</button><label class="import-label">JSONを読み込む<input id="import-visits" type="file" accept=".json,application/json"></label></div>
+        <p id="editor-status" class="editor-status" role="status" aria-live="polite">訪問記録の更新はGoogleスプレッドシートで行ってください。</p>
+      </div>
+    </details>
+  </main>
+  <footer class="container">
+    滝データの出典：<a href="https://docs.google.com/spreadsheets/d/e/2PACX-1vREVbtsNnID6TnDwH_DC_yKl-vBssrOScAzhOcDF3nH7UGo3ywAxDndcQdF7qf-hsYCtL2AAzT65F9p/pub?gid=1808485276&amp;single=true&amp;output=csv" target="_blank" rel="noopener noreferrer">公開Googleスプレッドシート</a>。訪問記録ありは攻略済みと同義ではありません。<br>
+    海岸線の参考：<a href="https://www.soest.hawaii.edu/wessel/gshhg/" target="_blank" rel="noopener noreferrer">GSHHG（LGPL）</a>。道路地図を使用せず日本の輪郭のみ描画しています。<br>
+    座標補完データの参考出典：<a href="https://100sen.cyber-ninja.jp/" target="_blank" rel="noopener noreferrer">日本百選と座標値（経緯度数値）</a>。
+    データには位置のずれや所在地の変更がありえます。アクセス情報と写真の利用条件は、公開前に個別確認してください。
+  </footer>
+  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="anonymous"></script>
+  <script>
+    'use strict';
+    // データ元はGoogleスプレッドシート。URLが変更になったらここだけ更新する。
+    const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vREVbtsNnID6TnDwH_DC_yKl-vBssrOScAzhOcDF3nH7UGo3ywAxDndcQdF7qf-hsYCtL2AAzT65F9p/pub?gid=1808485276&single=true&output=csv';
+    const SHEET_GID = '1808485276';
+    const SHEET_BASE = SHEET_CSV_URL.split('/pub?')[0];
+    // 日本の輪郭データ（GSHHGの海岸線から作成）。外部の地図画像は使用しない。
+    const JAPAN_OUTLINE = {"mainland":{"type":"MultiPolygon","coordinates":[[[[136.0941,33.8779],[135.9738,33.6767],[135.9846,33.6517],[135.94,33.6446],[135.9546,33.6217],[135.9271,33.6092],[135.9595,33.5816],[135.8,33.5004],[135.7971,33.4467],[135.7533,33.4362],[135.7658,33.4821],[135.5925,33.4979],[135.4483,33.5504],[135.3912,33.595],[135.392,33.6433],[135.3312,33.6691],[135.3366,33.6945],[135.3767,33.6837],[135.3983,33.7213],[135.3534,33.7271],[135.3167,33.7679],[135.2358,33.7812],[135.1425,33.8862],[135.0579,33.8817],[135.0587,33.905],[135.0829,33.9092],[135.0663,33.9325],[135.1138,33.9583],[135.075,33.9579],[135.0679,33.9775],[135.1745,34.0317],[135.0796,34.0733],[135.1204,34.0825],[135.0946,34.0834],[135.1175,34.1179],[135.1463,34.1116],[135.1275,34.1362],[135.1683,34.1329],[135.2095,34.1508],[135.1862,34.1466],[135.1883,34.1979],[135.1396,34.19],[135.1645,34.2392],[135.1291,34.2254],[135.0629,34.2633],[135.0704,34.2983],[135.2633,34.3754],[135.3646,34.4591],[135.3783,34.5046],[135.4254,34.5275],[135.4104,34.5408],[135.4445,34.5575],[135.4079,34.5725],[135.4637,34.5833],[135.4112,34.6383],[135.4612,34.6158],[135.4621,34.6558],[135.4263,34.6508],[135.4542,34.6754],[135.4138,34.6525],[135.4445,34.6917],[135.4125,34.6895],[135.4275,34.7087],[135.395,34.6888],[135.4,34.7054],[135.3883,34.6912],[135.3367,34.7254],[135.1891,34.6845],[135.1866,34.6521],[135.0417,34.6279],[134.9091,34.6762],[134.81,34.7504],[134.7959,34.7346],[134.7696,34.7508],[134.7833,34.7654],[134.7599,34.7487],[134.7075,34.7829],[134.6792,34.7737],[134.6908,34.7904],[134.66,34.7746],[134.6475,34.7962],[134.6458,34.7779],[134.5758,34.7604],[134.53,34.7829],[134.475,34.7554],[134.4633,34.8054],[134.4654,34.7641],[134.435,34.767],[134.4117,34.7271],[134.3583,34.7529],[134.3225,34.7229],[134.2933,34.7412],[134.2475,34.7162],[134.1858,34.7412],[134.2462,34.6983],[134.1446,34.6408],[134.1867,34.6379],[134.1725,34.6137],[134.0934,34.5804],[134.0558,34.5862],[134.0629,34.6075],[134.0454,34.6],[134.035,34.6321],[134.0325,34.6062],[133.975,34.602],[133.95,34.6262],[133.9684,34.5979],[133.9079,34.6],[133.9254,34.58],[133.8842,34.5587],[133.9283,34.5762],[133.9408,34.5538],[133.9767,34.5954],[134.035,34.5988],[134.0488,34.5775],[134.0012,34.5441],[134.005,34.5121],[133.9588,34.5225],[133.9662,34.495],[133.9387,34.4816],[133.9366,34.4504],[133.8341,34.4746],[133.8087,34.465],[133.8233,34.4287],[133.7867,34.4354],[133.7683,34.5104],[133.7458,34.4921],[133.7383,34.5254],[133.7375,34.4804],[133.7071,34.4925],[133.7,34.5629],[133.6779,34.5258],[133.6916,34.5137],[133.6658,34.5329],[133.5767,34.4646],[133.5383,34.4612],[133.4875,34.5137],[133.4438,34.4817],[133.445,34.4454],[133.4133,34.4804],[133.4133,34.4371],[133.3638,34.465],[133.4071,34.4325],[133.3683,34.3704],[133.28,34.4013],[133.245,34.3896],[133.272,34.4083],[133.2459,34.4421],[133.2108,34.3571],[133.1841,34.3571],[133.1696,34.3908],[133.2108,34.4096],[133.1309,34.3829],[133.0841,34.3963],[133.0751,34.3421],[132.9158,34.3329],[132.8525,34.2929],[132.7991,34.3095],[132.785,34.2762],[132.7562,34.2808],[132.7608,34.2412],[132.6992,34.237],[132.6841,34.2112],[132.635,34.2029],[132.5966,34.232],[132.5354,34.1942],[132.5587,34.1733],[132.5229,34.1575],[132.5579,34.1524],[132.54,34.1087],[132.575,34.1296],[132.5929,34.1158],[132.5712,34.1158],[132.5567,34.0696],[132.5341,34.1037],[132.4471,34.095],[132.5054,34.1366],[132.4987,34.18],[132.557,34.2383],[132.5216,34.2421],[132.4946,34.315],[132.4954,34.3475],[132.5254,34.3683],[132.4792,34.3638],[132.465,34.3396],[132.4421,34.3516],[132.4517,34.3821],[132.4342,34.3546],[132.4366,34.3837],[132.4192,34.3604],[132.4192,34.3804],[132.4008,34.3763],[132.3517,34.3612],[132.2238,34.245],[132.2513,34.1667],[132.2329,34.1641],[132.2496,34.16],[132.2363,34.1291],[132.2217,34.1463],[132.2021,34.1166],[132.2162,34.0],[132.1875,33.9612],[132.1021,33.9592],[132.1596,33.8583],[132.1391,33.8313],[132.1163,33.8349],[132.1175,33.877],[132.0437,33.9091],[132.0708,33.9362],[132.025,33.9012],[131.9833,33.9287],[131.97,33.9162],[131.96,33.9487],[131.8516,34.0129],[131.7979,33.9867],[131.8183,33.9696],[131.7733,33.9779],[131.8254,34.0308],[131.7849,34.0321],[131.7954,34.0567],[131.7467,34.0704],[131.6092,34.0229],[131.5908,34.0488],[131.5467,33.9971],[131.5079,34.0067],[131.4991,34.0462],[131.4417,33.9845],[131.425,34.017],[131.3979,33.9866],[131.4138,34.0233],[131.3921,34.03],[131.4138,34.0517],[131.3954,34.045],[131.3991,34.0713],[131.3663,34.0308],[131.3837,34.025],[131.357,33.9683],[131.2626,33.9254],[131.2333,33.9313],[131.2462,33.9458],[131.2283,33.9379],[131.2166,33.9696],[131.1808,33.9312],[131.1579,33.9575],[131.1717,33.9962],[131.1266,33.9987],[131.04,34.0637],[131.0063,34.0],[130.9241,33.9504],[130.9254,33.9166],[130.905,33.9129],[130.8754,33.9467],[130.9087,33.9525],[130.9121,34.0517],[130.8621,34.1142],[130.9204,34.1658],[130.9296,34.2091],[130.8663,34.2917],[130.8929,34.3125],[130.9,34.3646],[130.9283,34.3446],[131.0346,34.3742],[131.0149,34.4062],[130.9337,34.3941],[130.9725,34.4446],[131.0125,34.4146],[131.1292,34.4212],[131.1667,34.3754],[131.1966,34.3987],[131.2142,34.3746],[131.2258,34.3963],[131.3058,34.3854],[131.3358,34.4212],[131.4108,34.4287],[131.3946,34.46],[131.4124,34.4512],[131.4587,34.4874],[131.4537,34.5275],[131.5333,34.5629],[131.5566,34.6179],[131.6013,34.6258],[131.6042,34.6654],[131.635,34.6662],[131.6458,34.6429],[131.6692,34.6796],[131.745,34.6771],[131.8475,34.712],[131.8641,34.7588],[131.9442,34.7946],[132.0075,34.8696],[132.0558,34.8737],[132.1125,34.9529],[132.3091,35.0587],[132.4183,35.1913],[132.6308,35.2896],[132.6763,35.3733],[132.6717,35.4004],[132.6229,35.4175],[132.6292,35.4346],[132.7533,35.4496],[132.7266,35.4712],[132.8542,35.5112],[132.9708,35.5162],[132.9683,35.5438],[133.0284,35.5387],[133.0595,35.5658],[133.0483,35.5788],[133.0971,35.5816],[133.0925,35.6071],[133.1408,35.5621],[133.19,35.5637],[133.1916,35.5812],[133.3242,35.5696],[133.2475,35.5513],[133.2546,35.5092],[133.3058,35.4721],[133.3991,35.4538],[133.4467,35.4963],[133.5683,35.5321],[133.7917,35.5021],[134.0067,35.5388],[134.0309,35.5196],[134.1658,35.5329],[134.5391,35.6704],[134.6192,35.6395],[134.6559,35.6654],[134.7067,35.6546],[134.765,35.6754],[134.8409,35.6421],[134.8725,35.6612],[134.9275,35.6471],[135.0858,35.7412],[135.2241,35.7804],[135.2905,35.7266],[135.3029,35.6633],[135.2674,35.6671],[135.245,35.6196],[135.1546,35.555],[135.1775,35.5638],[135.2024,35.5396],[135.2558,35.6012],[135.2512,35.5749],[135.2746,35.5608],[135.2458,35.5621],[135.2412,35.5408],[135.3329,35.5166],[135.31,35.4529],[135.35,35.4946],[135.385,35.4779],[135.4037,35.4967],[135.3941,35.517],[135.3442,35.5062],[135.3408,35.5529],[135.4275,35.5696],[135.4617,35.6054],[135.4529,35.5692],[135.4871,35.5591],[135.4709,35.5329],[135.5033,35.5246],[135.4996,35.555],[135.5204,35.5508],[135.5175,35.4962],[135.5759,35.4946],[135.6633,35.5479],[135.6687,35.5258],[135.6313,35.5225],[135.6275,35.4896],[135.5838,35.4908],[135.7175,35.4854],[135.7663,35.5366],[135.7183,35.5221],[135.6896,35.5458],[135.7142,35.5712],[135.7991,35.5271],[135.8338,35.5383],[135.8029,35.5716],[135.84,35.5646],[135.8562,35.5975],[135.8271,35.6083],[135.8404,35.62],[135.8175,35.6446],[135.8675,35.6104],[135.9767,35.6271],[135.9546,35.7233],[136.0183,35.7646],[136.0446,35.6958],[136.0254,35.6808],[136.0708,35.6621],[136.0996,35.7775],[135.9945,35.8875],[135.9971,35.9342],[135.9604,35.9908],[136.008,36.0358],[136.0521,36.1317],[136.135,36.2188],[136.1487,36.2033],[136.1229,36.2525],[136.2191,36.2787],[136.4125,36.4187],[136.7029,36.7508],[136.7637,36.8817],[136.7504,36.935],[136.7704,36.9987],[136.7221,37.0558],[136.7246,37.1375],[136.6679,37.1508],[136.7338,37.285],[136.7221,37.3283],[136.7567,37.3638],[136.8692,37.4079],[136.9333,37.3996],[137.1109,37.4887],[137.2633,37.5321],[137.3454,37.5158],[137.3604,37.45],[137.2504,37.4217],[137.2379,37.3783],[137.2679,37.3358],[137.245,37.3079],[137.1167,37.2879],[137.0679,37.2174],[137.0109,37.1837],[136.9455,37.2175],[136.9625,37.2362],[136.9108,37.2296],[136.9279,37.2008],[136.8821,37.1616],[136.8762,37.1416],[136.8996,37.1316],[136.8604,37.0817],[136.9342,37.0879],[136.985,37.0488],[137.0217,37.1021],[137.0579,37.1075],[137.0579,36.9666],[136.9863,36.875],[137.0687,36.7958],[137.0516,36.7787],[137.0733,36.7937],[137.0591,36.7771],[137.2225,36.7671],[137.22,36.7346],[137.23,36.7654],[137.3317,36.7629],[137.3938,36.8091],[137.4342,36.9313],[137.9067,37.0587],[138.0966,37.1729],[138.2184,37.1696],[138.435,37.3246],[138.5417,37.3679],[138.6171,37.4842],[138.7454,37.6033],[138.8458,37.8204],[139.07,37.9537],[139.135,37.9512],[139.2842,38.0171],[139.425,38.1487],[139.4071,38.1533],[139.4554,38.2399],[139.4396,38.2475],[139.4537,38.39],[139.5487,38.5425],[139.5387,38.56],[139.6212,38.6833],[139.7491,38.7779],[139.7858,38.8479],[139.8121,38.8425],[139.7854,38.8541],[139.8092,38.9246],[139.8429,38.8908],[139.8113,38.9308],[139.8487,38.985],[139.8687,39.1183],[139.9037,39.18],[139.8912,39.215],[139.9171,39.2808],[139.9642,39.2954],[140.0363,39.3933],[140.0171,39.3966],[140.0604,39.6875],[140.1037,39.6792],[140.0154,39.8358],[139.9563,39.8958],[139.9741,39.9162],[140.0466,39.8846],[140.0405,39.93],[140.07,39.9988],[140.0176,39.9246],[139.9479,39.9416],[139.9717,39.9671],[139.945,39.9429],[139.9241,39.9629],[139.95,39.8979],[139.8625,39.8979],[139.8166,39.8562],[139.7533,39.8596],[139.7037,39.9283],[139.7196,39.9566],[139.6971,39.965],[139.6992,40.0079],[139.7974,39.9587],[139.8875,39.9996],[140.0171,40.2217],[140.0246,40.3533],[139.9371,40.4266],[139.9487,40.4992],[139.9288,40.5733],[139.8692,40.5837],[139.8604,40.615],[139.9271,40.6433],[140.0,40.7463],[140.0542,40.7696],[140.1208,40.7437],[140.2504,40.8033],[140.2929,40.8883],[140.3205,41.035],[140.3442,41.0046],[140.4129,41.0242],[140.3383,41.0512],[140.3208,41.0371],[140.3188,41.0917],[140.2462,41.1233],[140.3245,41.1542],[140.3391,41.2604],[140.4625,41.1829],[140.5483,41.2296],[140.6379,41.1866],[140.6596,40.9541],[140.6846,40.8691],[140.7283,40.8329],[140.7967,40.8362],[140.8579,40.8892],[140.8712,40.9433],[140.8387,40.9525],[140.8629,40.9591],[140.87,41.0162],[140.95,40.9921],[141.0025,40.9354],[141.1308,40.8729],[141.2196,40.9667],[141.2471,41.1092],[141.2779,41.1558],[141.2654,41.1933],[141.1808,41.2854],[141.1345,41.2433],[141.1574,41.2629],[141.1525,41.2404],[141.0558,41.1821],[140.98,41.1979],[140.7816,41.1304],[140.7646,41.1958],[140.8345,41.4191],[140.897,41.4758],[140.9108,41.5463],[141.0024,41.4854],[141.1076,41.4662],[141.1883,41.3887],[141.2766,41.3529],[141.3941,41.3795],[141.4633,41.4312],[141.387,41.1533],[141.392,40.8833],[141.4362,40.6733],[141.4996,40.5458],[141.535,40.5262],[141.5717,40.5454],[141.6234,40.5071],[141.7179,40.4167],[141.8162,40.2708],[141.8362,40.2175],[141.81,40.2179],[141.8013,40.1874],[141.8762,40.1433],[141.8396,40.1267],[141.8304,40.0842],[141.9529,39.9842],[141.9612,39.9458],[141.9388,39.92],[141.9779,39.8742],[141.9645,39.845],[141.9837,39.8425],[141.9846,39.7908],[142.0055,39.7775],[141.9721,39.7324],[141.9846,39.6517],[141.9521,39.6392],[141.9445,39.59],[142.0225,39.6587],[142.0279,39.58],[142.0704,39.5475],[142.0575,39.5246],[142.0329,39.53],[142.01,39.4779],[141.9521,39.4717],[141.9767,39.4421],[142.0491,39.4854],[142.0429,39.4275],[141.9775,39.4095],[141.9742,39.4287],[141.9371,39.3858],[141.9646,39.3799],[141.9546,39.3566],[141.9108,39.3613],[141.8979,39.3391],[141.9946,39.3517],[141.97,39.3138],[141.8904,39.3083],[141.9279,39.2724],[141.8808,39.2704],[141.8901,39.2496],[141.9713,39.2492],[141.9421,39.24],[141.9475,39.2179],[141.8658,39.2071],[141.9238,39.1775],[141.8371,39.1475],[141.9213,39.105],[141.8791,39.0854],[141.8129,39.1133],[141.8242,39.0762],[141.8754,39.0658],[141.8171,39.0575],[141.8474,39.0271],[141.8008,39.0246],[141.7974,39.0429],[141.7342,39.0229],[141.7242,39.0721],[141.7104,39.0242],[141.7437,38.99],[141.712,38.9958],[141.6979,38.9716],[141.7279,38.9525],[141.7066,38.9396],[141.6662,38.9766],[141.6725,39.0046],[141.6325,39.0054],[141.6371,38.93],[141.6762,38.8608],[141.6367,38.9021],[141.6058,38.8796],[141.5817,38.9096],[141.6037,38.8283],[141.5154,38.7708],[141.5637,38.7392],[141.5621,38.6916],[141.525,38.7162],[141.4925,38.6729],[141.4429,38.6717],[141.4416,38.6454],[141.5304,38.6383],[141.5166,38.6037],[141.46,38.5737],[141.4925,38.5346],[141.5316,38.5488],[141.5341,38.4887],[141.4741,38.5196],[141.4987,38.4799],[141.4771,38.465],[141.5129,38.4492],[141.4495,38.4425],[141.4746,38.4225],[141.4691,38.3963],[141.5,38.4154],[141.5405,38.3967],[141.4821,38.3767],[141.5337,38.3409],[141.5262,38.2749],[141.4496,38.3158],[141.4737,38.3317],[141.46,38.3504],[141.4154,38.3475],[141.4554,38.3741],[141.4325,38.3729],[141.4292,38.3979],[141.3708,38.3837],[141.3575,38.4129],[141.2482,38.4179],[141.1566,38.3554],[141.1067,38.3846],[141.105,38.3688],[141.0708,38.3762],[141.0287,38.3216],[141.0725,38.3213],[141.0871,38.2974],[141.0183,38.2754],[140.9608,38.1762],[140.9658,38.1929],[140.9567,38.1787],[140.9187,38.2],[140.9563,38.1767],[140.9425,38.1604],[140.9621,38.1716],[140.9217,38.0496],[140.8938,38.0891],[140.9054,38.0517],[140.9246,38.0483],[140.8987,38.0333],[140.9204,38.0325],[140.9362,37.8733],[140.9871,37.8225],[141.0096,37.7458],[141.0421,37.4983],[140.9821,36.995],[140.9242,36.9346],[140.8792,36.9421],[140.7937,36.8825],[140.8063,36.8292],[140.7496,36.7874],[140.717,36.6617],[140.612,36.4766],[140.6254,36.3675],[140.5595,36.2791],[140.5796,36.16],[140.6987,35.93],[140.6829,35.9216],[140.7063,35.92],[140.8454,35.7408],[140.7229,35.7942],[140.8141,35.7379],[140.8625,35.7421],[140.8646,35.6924],[140.8275,35.7129],[140.685,35.697],[140.5316,35.6071],[140.4088,35.4542],[140.3929,35.3633],[140.4146,35.305],[140.3854,35.1883],[140.3134,35.1354],[140.2967,35.1496],[140.2349,35.1154],[140.1175,35.1137],[140.1008,35.0762],[139.9796,35.0058],[139.9433,34.9179],[139.89,34.8988],[139.8333,34.9054],[139.8124,34.9412],[139.7546,34.9641],[139.8588,34.9975],[139.8112,35.0375],[139.8421,35.0875],[139.8163,35.1724],[139.8704,35.2308],[139.85,35.2896],[139.7679,35.3167],[139.8375,35.3229],[139.8575,35.3687],[139.9141,35.3671],[139.9067,35.4337],[139.9717,35.4429],[139.9883,35.4679],[140.0025,35.4554],[139.9896,35.47],[140.0213,35.47],[140.0625,35.5445],[140.1151,35.5437],[140.1046,35.5625],[140.1271,35.5708],[140.1117,35.6029],[140.0721,35.6133],[140.0871,35.6275],[140.0617,35.6521],[139.9883,35.6879],[139.955,35.6737],[139.9367,35.6946],[139.9155,35.6708],[139.9304,35.6542],[139.8925,35.6237],[139.8771,35.635],[139.8925,35.6613],[139.8525,35.6429],[139.8516,35.6637],[139.8058,35.6546],[139.7816,35.6729],[139.7471,35.5908],[139.7871,35.5366],[139.7529,35.5416],[139.7871,35.5216],[139.7541,35.5313],[139.7492,35.5062],[139.6304,35.4583],[139.6862,35.4392],[139.6717,35.4029],[139.6237,35.3958],[139.6504,35.3842],[139.6237,35.3275],[139.6554,35.325],[139.637,35.2975],[139.6541,35.3079],[139.6584,35.2854],[139.67,35.3029],[139.6884,35.2671],[139.7479,35.255],[139.725,35.2154],[139.6571,35.1841],[139.6805,35.1408],[139.612,35.1425],[139.6254,35.1641],[139.6004,35.1967],[139.6279,35.2149],[139.5475,35.3063],[139.34,35.3146],[139.1708,35.2546],[139.1412,35.1941],[139.1604,35.1424],[139.1141,35.1454],[139.0688,35.0558],[139.1004,35.0458],[139.0829,35.0033],[139.0979,34.9774],[139.1479,34.955],[139.1413,34.8925],[139.0845,34.8525],[139.0504,34.7692],[139.0029,34.7466],[138.9746,34.6925],[138.9883,34.6579],[138.9583,34.6529],[138.9533,34.6763],[138.8449,34.6004],[138.7754,34.6433],[138.7899,34.6696],[138.7396,34.6908],[138.7404,34.7267],[138.7771,34.7575],[138.7538,34.8008],[138.7754,34.8516],[138.7562,34.8834],[138.7895,34.9084],[138.7621,34.9692],[138.7866,35.0304],[138.8941,35.0179],[138.902,35.0491],[138.8275,35.1071],[138.7441,35.1329],[138.5708,35.1071],[138.4929,35.0266],[138.4992,35.0088],[138.5321,35.0167],[138.5159,34.9829],[138.3562,34.9124],[138.3279,34.8683],[138.3379,34.8267],[138.295,34.7646],[138.2229,34.7233],[138.1996,34.6733],[138.1945,34.6383],[138.2292,34.5954],[138.0,34.662],[137.8899,34.6745],[137.8041,34.6446],[137.79,34.6613],[137.7849,34.6429],[137.7491,34.6662],[137.6001,34.6762],[137.5924,34.6954],[137.6554,34.6883],[137.6138,34.7075],[137.65,34.7604],[137.5836,34.7133],[137.6491,34.802],[137.5153,34.7574],[137.5392,34.7579],[137.5313,34.7258],[137.5958,34.677],[137.41,34.6621],[137.1375,34.5887],[137.0158,34.5787],[137.0725,34.6628],[137.113,34.6509],[137.0845,34.6541],[137.1025,34.6296],[137.2767,34.7129],[137.3075,34.6804],[137.3475,34.7262],[137.3654,34.7175],[137.3557,34.7446],[137.3229,34.7383],[137.3214,34.7691],[137.3746,34.78],[137.2059,34.8237],[137.1783,34.7653],[137.1733,34.7862],[137.1083,34.7921],[137.0275,34.7762],[136.9979,34.8091],[137.0104,34.8458],[136.9787,34.8291],[137.0363,34.8866],[136.9725,34.8288],[136.9579,34.8583],[136.9846,34.8941],[136.9824,34.9629],[136.9563,34.8841],[136.9329,34.8758],[136.9162,34.7791],[136.9687,34.7308],[136.9738,34.6958],[136.8899,34.7196],[136.8421,34.7616],[136.8663,34.84],[136.8212,34.9008],[136.8454,35.0066],[136.8837,35.0283],[136.8612,35.0283],[136.8887,35.0433],[136.8867,35.067],[136.8663,35.0508],[136.8921,35.0958],[136.8687,35.0925],[136.8584,35.0587],[136.8433,35.0929],[136.8296,35.0524],[136.8058,35.0621],[136.7841,35.0354],[136.7342,35.0596],[136.7292,35.0254],[136.7125,35.0546],[136.7125,35.0229],[136.6504,34.9916],[136.6346,34.9492],[136.6571,34.9466],[136.6254,34.8675],[136.5188,34.7408],[136.5188,34.68],[136.5488,34.6674],[136.5029,34.6525],[136.5488,34.6333],[136.5221,34.6125],[136.56,34.6096],[136.5533,34.5912],[136.5642,34.6079],[136.6217,34.5987],[136.7133,34.5454],[136.7051,34.5304],[136.7209,34.5421],[136.6916,34.5112],[136.7367,34.5321],[136.7359,34.5021],[136.7555,34.5],[136.7533,34.5237],[136.8092,34.5087],[136.82,34.4846],[136.8367,34.5079],[136.8441,34.4629],[136.8762,34.4741],[136.8758,34.427],[136.8958,34.4538],[136.9229,34.445],[136.9125,34.3771],[136.8867,34.3913],[136.8575,34.3629],[136.8112,34.3675],[136.8242,34.3546],[136.8508,34.3571],[136.8633,34.3645],[136.8666,34.3437],[136.9079,34.365],[136.8771,34.3333],[136.8996,34.2767],[136.8458,34.2462],[136.765,34.2596],[136.7504,34.2725],[136.8567,34.2662],[136.8271,34.2842],[136.8654,34.2908],[136.8296,34.2975],[136.8425,34.3138],[136.805,34.3079],[136.8066,34.3271],[136.7975,34.2896],[136.7617,34.3146],[136.7625,34.2929],[136.7166,34.3037],[136.6866,34.2829],[136.6921,34.3199],[136.7246,34.3433],[136.6933,34.3487],[136.68,34.3237],[136.6887,34.345],[136.6616,34.3454],[136.6721,34.325],[136.6362,34.31],[136.6763,34.3142],[136.6049,34.2571],[136.5704,34.2758],[136.59,34.2946],[136.5471,34.2825],[136.5475,34.2496],[136.5391,34.2779],[136.5292,34.2612],[136.5041,34.2779],[136.5195,34.2425],[136.4933,34.2588],[136.5038,34.2442],[136.4846,34.24],[136.5104,34.2333],[136.4917,34.2221],[136.4604,34.2317],[136.4641,34.2554],[136.4421,34.2466],[136.4551,34.2204],[136.325,34.1954],[136.3358,34.1813],[136.2804,34.1608],[136.2871,34.1183],[136.3171,34.1141],[136.2991,34.0837],[136.2521,34.0908],[136.2692,34.1279],[136.2021,34.0742],[136.2491,34.0638],[136.2454,34.0383],[136.2829,34.0225],[136.2429,34.0142],[136.2713,34.0058],[136.272,33.9716],[136.2392,33.9679],[136.2521,33.9841],[136.2121,33.9975],[136.1921,33.9725],[136.2217,33.9745],[136.2321,33.9467],[136.1841,33.9388],[136.1995,33.9199],[136.1808,33.9129],[136.15,33.9296],[136.1383,33.887],[136.12,33.8987],[136.0941,33.8779]]],[[[143.2587,41.9991],[143.2425,41.9237],[143.1342,42.0279],[142.9616,42.1196],[142.8183,42.1396],[142.4925,42.2663],[142.3016,42.3596],[142.1908,42.4488],[142.0291,42.4837],[141.9066,42.5762],[141.735,42.6262],[141.6271,42.6317],[141.6699,42.6495],[141.3533,42.5446],[141.1342,42.4271],[141.0033,42.3012],[140.9279,42.3391],[140.9601,42.3446],[140.9734,42.3221],[141.0042,42.3496],[140.9084,42.3763],[140.8754,42.4549],[140.7766,42.4988],[140.772,42.5384],[140.7075,42.5838],[140.5825,42.5646],[140.4767,42.5887],[140.3871,42.5184],[140.3163,42.4234],[140.2779,42.3209],[140.2913,42.2492],[140.3892,42.2229],[140.5476,42.1146],[140.7066,42.1388],[140.7599,42.1171],[140.9591,41.9179],[141.145,41.8579],[141.1871,41.8008],[141.1092,41.7838],[141.0533,41.7254],[140.9642,41.7088],[140.7858,41.7738],[140.7016,41.7395],[140.6921,41.765],[140.7254,41.775],[140.7179,41.805],[140.6383,41.8162],[140.6008,41.7412],[140.4421,41.6808],[140.4275,41.5337],[140.2583,41.4804],[140.1966,41.3962],[140.04,41.4454],[139.9837,41.5558],[140.0071,41.6908],[140.0671,41.7641],[140.0671,41.8042],[140.1196,41.8192],[140.1446,41.9292],[140.1212,41.9983],[140.0308,42.1079],[139.9158,42.1362],[139.8766,42.2112],[139.7779,42.2525],[139.7804,42.3525],[139.8442,42.4246],[139.8588,42.4166],[139.8237,42.6142],[139.8983,42.6804],[140.0558,42.7004],[140.1438,42.7542],[140.1867,42.8279],[140.2583,42.7638],[140.3017,42.7771],[140.3062,42.8275],[140.3583,42.8771],[140.3814,42.8675],[140.3613,42.8792],[140.3917,42.9238],[140.5229,42.9909],[140.5262,43.0283],[140.4288,43.1408],[140.3237,43.22],[140.3579,43.3159],[140.3434,43.3354],[140.4316,43.3321],[140.4866,43.3763],[140.63,43.2979],[140.6409,43.2662],[140.775,43.2262],[140.7867,43.1829],[140.8525,43.2171],[141.0166,43.2404],[141.0013,43.2067],[141.0183,43.1879],[141.1599,43.1454],[141.2733,43.1904],[141.3683,43.2696],[141.3499,43.2313],[141.417,43.3225],[141.4263,43.4183],[141.357,43.5183],[141.3829,43.605],[141.3262,43.7258],[141.3875,43.8079],[141.5591,43.8596],[141.6446,43.945],[141.6629,44.055],[141.6463,44.3133],[141.7496,44.4383],[141.7905,44.615],[141.7371,44.9008],[141.7383,44.8812],[141.5829,45.1633],[141.5729,45.2358],[141.6562,45.3566],[141.6337,45.4075],[141.645,45.4504],[141.6859,45.4012],[141.8,45.4071],[141.8584,45.4346],[141.9133,45.5187],[141.9584,45.5146],[142.0517,45.4004],[142.1683,45.3412],[142.3833,45.1354],[142.5009,45.0604],[142.5862,44.9608],[142.5896,44.9183],[142.7296,44.77],[142.9859,44.5654],[143.5142,44.2688],[143.4583,44.2871],[143.5054,44.2683],[143.4867,44.2546],[143.5141,44.2471],[143.52,44.2671],[143.5612,44.2517],[143.5467,44.2354],[143.565,44.2512],[143.7824,44.1813],[143.6704,44.1908],[143.76,44.0987],[143.9116,44.1096],[143.9384,44.0846],[143.9675,44.1271],[143.7933,44.1812],[144.1917,44.1037],[144.1153,44.0891],[144.1004,44.0283],[144.1308,44.0121],[144.1904,44.0433],[144.1951,44.1029],[144.2467,44.1129],[144.2579,44.0358],[144.385,43.9279],[144.4438,43.9208],[144.3642,43.9571],[144.5883,43.9204],[144.7758,43.9271],[144.91,44.0004],[145.0125,44.1004],[145.1899,44.1954],[145.3216,44.3438],[145.3433,44.3421],[145.367,44.2724],[145.348,44.2224],[145.2554,44.1275],[145.2379,44.0558],[145.1296,43.95],[145.0621,43.8058],[145.0688,43.75],[145.1383,43.652],[145.315,43.6021],[145.3479,43.5792],[145.3467,43.5554],[145.295,43.5496],[145.2808,43.5629],[145.3408,43.5804],[145.3083,43.5804],[145.327,43.5858],[145.3109,43.5996],[145.2375,43.5896],[145.2666,43.6104],[145.1937,43.6258],[145.2796,43.3991],[145.3895,43.2966],[145.28,43.3562],[145.2295,43.3367],[145.3283,43.3121],[145.2979,43.3058],[145.3116,43.2771],[145.4832,43.2737],[145.5154,43.2417],[145.5041,43.2146],[145.5296,43.245],[145.4904,43.2683],[145.5213,43.3091],[145.6491,43.3921],[145.8179,43.3866],[145.7484,43.3338],[145.6308,43.3204],[145.5658,43.2838],[145.557,43.2191],[145.5079,43.1875],[145.5216,43.1654],[145.4184,43.1879],[145.2875,43.1721],[145.2033,43.1354],[145.145,43.1446],[145.1171,43.1283],[145.112,43.0917],[145.1713,43.075],[145.1025,43.0779],[145.085,43.0446],[145.0317,43.0279],[144.99,43.0562],[145.0321,43.0116],[144.9742,42.9812],[144.8792,42.9846],[144.8316,43.0137],[144.8483,43.0446],[144.9041,43.0179],[144.9445,43.0467],[144.8625,43.0721],[144.86,43.0937],[144.8567,43.0479],[144.7808,43.0537],[144.727,42.9958],[144.7229,42.975],[144.7834,42.9337],[144.6291,42.9512],[144.4792,42.9379],[144.3616,42.9696],[144.3879,42.9816],[144.3542,42.9988],[144.244,42.9986],[143.9941,42.9271],[143.6483,42.6929],[143.6638,42.6925],[143.4354,42.4783],[143.3187,42.2966],[143.3087,42.245],[143.3371,42.2017],[143.3237,42.1141],[143.3087,42.0475],[143.2587,41.9991]]],[[[130.7459,31.0604],[130.6546,31.0075],[130.6754,31.0616],[130.6529,31.0717],[130.7479,31.1408],[130.7663,31.1816],[130.7521,31.2125],[130.7896,31.2533],[130.8029,31.335],[130.7554,31.4249],[130.6979,31.4616],[130.6996,31.5533],[130.6392,31.5446],[130.5912,31.5883],[130.6259,31.6221],[130.6808,31.6296],[130.7187,31.6025],[130.7125,31.5579],[130.7675,31.5654],[130.8229,31.6575],[130.7983,31.6996],[130.6413,31.7324],[130.6113,31.6849],[130.6204,31.6574],[130.5663,31.6008],[130.5604,31.5458],[130.5146,31.5],[130.5712,31.3158],[130.6696,31.2675],[130.6562,31.22],[130.6304,31.2117],[130.6396,31.1891],[130.5933,31.1779],[130.5875,31.1554],[130.5575,31.1779],[130.5175,31.1654],[130.5129,31.2075],[130.4617,31.2496],[130.2875,31.2671],[130.2792,31.2454],[130.2166,31.2471],[130.2296,31.28],[130.1987,31.2916],[130.2254,31.3083],[130.1738,31.3217],[130.2088,31.3467],[130.1062,31.4117],[130.16,31.4396],[130.2275,31.3996],[130.3159,31.4437],[130.2921,31.4524],[130.3345,31.5692],[130.3221,31.6508],[130.2534,31.7304],[130.1875,31.7471],[130.1671,31.7908],[130.195,31.8487],[130.2475,31.8313],[130.1971,31.8508],[130.2238,31.9108],[130.2021,31.985],[130.1729,31.9908],[130.2088,32.06],[130.1713,32.0783],[130.1746,32.105],[130.2233,32.1296],[130.2667,32.1121],[130.2691,32.1296],[130.2767,32.0946],[130.3396,32.1208],[130.3604,32.1817],[130.3796,32.1758],[130.3779,32.2117],[130.4425,32.2363],[130.4279,32.2649],[130.4954,32.3041],[130.4654,32.3192],[130.5054,32.3549],[130.4904,32.3683],[130.5712,32.4325],[130.5771,32.4792],[130.5467,32.4779],[130.5437,32.4992],[130.622,32.4991],[130.5379,32.5267],[130.6083,32.5937],[130.6483,32.5871],[130.6188,32.615],[130.6621,32.6333],[130.4674,32.6054],[130.4512,32.6233],[130.5909,32.7112],[130.6387,32.6983],[130.6046,32.72],[130.5996,32.7766],[130.6187,32.7883],[130.5745,32.855],[130.5237,32.8542],[130.5446,32.9067],[130.5233,32.8812],[130.445,32.9229],[130.4279,32.9975],[130.4004,33.005],[130.4387,33.0499],[130.4112,33.0858],[130.4329,33.1091],[130.3896,33.0958],[130.3579,33.1541],[130.3621,33.2108],[130.4475,33.2737],[130.4579,33.2983],[130.3412,33.2075],[130.3283,33.1429],[130.2883,33.1495],[130.2558,33.2079],[130.2466,33.1913],[130.1933,33.2046],[130.2296,33.1875],[130.2204,33.1641],[130.1541,33.1137],[130.118,33.1291],[130.1146,33.1017],[130.1438,33.0899],[130.2263,32.955],[130.0879,32.8592],[130.1483,32.8487],[130.1566,32.8262],[130.2425,32.8762],[130.34,32.8579],[130.3804,32.7858],[130.3505,32.6733],[130.2583,32.6513],[130.2325,32.6096],[130.1675,32.5896],[130.1687,32.6191],[130.1288,32.6408],[130.1254,32.6883],[130.1692,32.6937],[130.2063,32.7533],[130.1783,32.7937],[130.0833,32.7937],[130.025,32.7579],[129.9533,32.7688],[129.9563,32.7392],[129.9121,32.7108],[129.8958,32.6604],[129.84,32.6404],[129.7808,32.5696],[129.7383,32.5679],[129.8146,32.6533],[129.8162,32.6825],[129.7888,32.69],[129.825,32.7079],[129.8341,32.6896],[129.8688,32.7475],[129.815,32.717],[129.8313,32.7342],[129.7654,32.7975],[129.7837,32.8258],[129.7325,32.8062],[129.6845,32.8525],[129.6637,32.9175],[129.632,32.925],[129.6262,32.9775],[129.6613,32.9966],[129.6479,33.0408],[129.6758,33.0971],[129.73,33.0771],[129.73,33.0471],[129.7629,33.0483],[129.7354,33.0175],[129.7408,32.9879],[129.765,33.0221],[129.8237,32.9816],[129.8067,32.9113],[129.8013,32.9525],[129.7854,32.9458],[129.7838,32.9066],[129.8121,32.8933],[129.79,32.867],[129.8492,32.8313],[129.8817,32.8821],[129.9783,32.8371],[130.0096,32.8466],[129.9304,32.9225],[129.9287,32.97],[129.9504,32.9875],[129.9242,33.0321],[129.8741,33.0637],[129.8241,33.0354],[129.8362,33.06],[129.7983,33.0654],[129.7967,33.0887],[129.7667,33.0762],[129.7691,33.1004],[129.7596,33.0808],[129.7821,33.0608],[129.7625,33.0504],[129.7287,33.1033],[129.7516,33.1004],[129.7454,33.125],[129.7575,33.1146],[129.7825,33.1463],[129.7267,33.1263],[129.7288,33.1575],[129.7017,33.1629],[129.7129,33.1158],[129.6667,33.1021],[129.6579,33.1366],[129.6987,33.1383],[129.6642,33.1846],[129.6354,33.1675],[129.6554,33.185],[129.6384,33.2246],[129.6283,33.1904],[129.6209,33.2154],[129.5962,33.2016],[129.6167,33.2262],[129.5529,33.2175],[129.5655,33.2683],[129.6195,33.3108],[129.5783,33.3021],[129.5604,33.3316],[129.5692,33.3796],[129.6458,33.3662],[129.6733,33.4004],[129.6808,33.3504],[129.7875,33.3729],[129.8179,33.3025],[129.8633,33.2812],[129.8271,33.3125],[129.8579,33.3716],[129.8116,33.3479],[129.7963,33.415],[129.8316,33.4079],[129.8392,33.3804],[129.8583,33.3963],[129.8591,33.3754],[129.8638,33.4117],[129.8242,33.4129],[129.7838,33.4508],[129.8071,33.4575],[129.8066,33.4879],[129.8366,33.4512],[129.8579,33.4566],[129.8279,33.5041],[129.8537,33.5233],[129.8483,33.5579],[129.8796,33.535],[129.9325,33.5521],[129.9696,33.5116],[129.9387,33.4758],[129.9667,33.4854],[129.9659,33.4579],[130.0341,33.4512],[130.0458,33.4987],[130.1259,33.5112],[130.1646,33.5524],[130.1158,33.5471],[130.1346,33.5666],[130.0871,33.5841],[130.1517,33.5987],[130.1563,33.63],[130.1933,33.6371],[130.2092,33.6687],[130.2371,33.65],[130.2341,33.6162],[130.2754,33.6117],[130.2733,33.5829],[130.3975,33.6004],[130.4291,33.6879],[130.3575,33.6437],[130.2958,33.6629],[130.2888,33.69],[130.3416,33.6621],[130.445,33.7246],[130.4721,33.8075],[130.4509,33.7854],[130.4446,33.8158],[130.4691,33.8146],[130.4779,33.8583],[130.52,33.8621],[130.525,33.8904],[130.5983,33.8779],[130.6633,33.8988],[130.6808,33.8679],[130.6812,33.8925],[130.6562,33.9099],[130.6841,33.9379],[130.7567,33.9212],[130.8408,33.9487],[130.7996,33.9333],[130.8246,33.93],[130.8,33.8912],[130.7558,33.8779],[130.7725,33.8762],[130.8025,33.8921],[130.8016,33.8746],[130.8283,33.9237],[130.8575,33.9296],[130.8696,33.9175],[130.8496,33.9066],[130.8708,33.9171],[130.8908,33.8887],[130.9633,33.9629],[131.0033,33.9646],[131.0262,33.9584],[131.0179,33.9192],[130.9888,33.8991],[130.9937,33.8524],[130.9579,33.8283],[130.9971,33.8091],[130.9987,33.7483],[131.0179,33.7508],[131.1,33.6196],[131.1291,33.6312],[131.1792,33.6062],[131.2458,33.612],[131.2658,33.5813],[131.3641,33.5779],[131.3508,33.5279],[131.3717,33.5779],[131.4358,33.5645],[131.4237,33.5917],[131.4708,33.612],[131.5225,33.6837],[131.5733,33.6737],[131.5841,33.6929],[131.6658,33.6695],[131.7421,33.5625],[131.7396,33.47],[131.7024,33.4062],[131.6216,33.4137],[131.6504,33.3858],[131.5991,33.3704],[131.5942,33.3479],[131.5004,33.36],[131.5087,33.2758],[131.5925,33.247],[131.6758,33.2779],[131.6884,33.2579],[131.6908,33.2771],[131.6958,33.2329],[131.6967,33.2721],[131.7617,33.2404],[131.9025,33.2688],[131.7962,33.1225],[131.9008,33.1362],[131.9162,33.1234],[131.8625,33.0779],[131.9258,33.067],[131.9416,33.0971],[131.9446,33.07],[131.9733,33.0621],[132.0018,33.0969],[132.0179,33.0591],[131.9316,33.0521],[131.8912,32.9941],[131.9237,32.9549],[131.8753,32.9566],[131.9624,32.947],[131.9766,32.9645],[131.985,32.9395],[132.005,32.9587],[132.0033,32.9337],[132.0341,32.9546],[132.0862,32.9308],[132.0292,32.9346],[132.0117,32.9054],[131.979,32.9229],[131.9882,32.8895],[132.0171,32.89],[131.9461,32.8357],[131.9834,32.8244],[131.9883,32.8477],[132.0079,32.8241],[131.94,32.7845],[131.8933,32.8045],[131.9004,32.7641],[131.8782,32.7903],[131.8879,32.7458],[131.8604,32.7308],[131.87,32.7112],[131.8528,32.7208],[131.8595,32.6957],[131.8216,32.7036],[131.7941,32.6612],[131.7795,32.6732],[131.7512,32.6449],[131.7779,32.6316],[131.7459,32.5912],[131.7016,32.6145],[131.7054,32.5908],[131.6779,32.5833],[131.7156,32.5916],[131.6804,32.5483],[131.6828,32.505],[131.7157,32.5184],[131.7329,32.4924],[131.6496,32.4641],[131.6449,32.4387],[131.6832,32.4445],[131.6562,32.4291],[131.6953,32.4242],[131.6346,32.4183],[131.6329,32.3424],[131.6071,32.3432],[131.542,32.1333],[131.5188,32.1374],[131.5429,32.1283],[131.4629,31.8958],[131.4021,31.92],[131.4604,31.8933],[131.4571,31.8191],[131.4404,31.8158],[131.4896,31.7833],[131.4521,31.68],[131.4713,31.6458],[131.4004,31.5992],[131.4154,31.5749],[131.3829,31.5533],[131.3904,31.4866],[131.3629,31.4692],[131.3671,31.4208],[131.3338,31.3983],[131.3496,31.3649],[131.3109,31.3904],[131.2541,31.3812],[131.2183,31.4529],[131.11,31.4762],[131.0767,31.4613],[131.0006,31.3582],[131.1092,31.3329],[131.0762,31.2808],[131.1304,31.2767],[131.07,31.2287],[131.0174,31.2279],[130.9709,31.1429],[130.7459,31.0604]]],[[[132.9987,32.9833],[133.0087,32.88],[132.9525,32.8604],[132.9504,32.82],[133.0038,32.7858],[133.0216,32.7221],[132.9667,32.7287],[132.9671,32.7733],[132.9458,32.7637],[132.9384,32.7846],[132.8808,32.7879],[132.87,32.7646],[132.8625,32.787],[132.7908,32.7462],[132.71,32.7962],[132.6308,32.7612],[132.6446,32.785],[132.6271,32.7967],[132.6721,32.8409],[132.6571,32.8533],[132.7196,32.88],[132.7046,32.8933],[132.7196,32.9266],[132.5992,32.9112],[132.6025,32.9437],[132.5508,32.9446],[132.5683,32.9271],[132.5125,32.9479],[132.5279,32.9316],[132.4987,32.9175],[132.5287,32.9133],[132.4916,32.897],[132.4612,32.9383],[132.5038,32.9541],[132.4716,32.9704],[132.4991,32.9863],[132.4959,32.9646],[132.5554,32.9617],[132.5112,32.9758],[132.4829,33.0475],[132.4524,33.0354],[132.4084,33.0554],[132.4113,33.0283],[132.3771,33.0233],[132.4025,33.0704],[132.4821,33.0583],[132.4595,33.0858],[132.4796,33.0975],[132.445,33.1263],[132.5046,33.1216],[132.44,33.137],[132.4304,33.1708],[132.4621,33.1717],[132.4225,33.2071],[132.3983,33.1846],[132.3933,33.2063],[132.46,33.2104],[132.4883,33.1654],[132.4925,33.1854],[132.5146,33.1725],[132.4991,33.2079],[132.5596,33.2216],[132.5196,33.2491],[132.54,33.2729],[132.5092,33.2587],[132.478,33.275],[132.5225,33.3146],[132.3704,33.3191],[132.4196,33.3566],[132.4133,33.3838],[132.3837,33.3617],[132.3963,33.3983],[132.3787,33.4158],[132.4145,33.4417],[132.3833,33.4437],[132.4229,33.4633],[132.3741,33.4596],[132.3525,33.4871],[132.3158,33.4512],[132.3017,33.4737],[132.1542,33.3737],[132.1059,33.3621],[132.1204,33.3883],[132.0966,33.3871],[132.0179,33.3467],[132.1208,33.4212],[132.1658,33.4129],[132.1487,33.435],[132.1758,33.4279],[132.1741,33.4471],[132.2258,33.4454],[132.2425,33.4662],[132.26,33.4504],[132.2591,33.4738],[132.4208,33.5471],[132.4792,33.6171],[132.6525,33.6971],[132.6996,33.7599],[132.6987,33.8791],[132.7092,33.9079],[132.7546,33.9133],[132.7654,33.9987],[132.8625,34.0587],[132.9158,34.0654],[132.9254,34.11],[132.8912,34.1191],[132.9234,34.1179],[132.94,34.1438],[133.0379,34.0383],[133.0904,33.9383],[133.1142,33.9212],[133.1288,33.9425],[133.1317,33.9104],[133.1367,33.9296],[133.1984,33.9262],[133.2525,33.952],[133.2574,33.9821],[133.2651,33.9613],[133.3208,33.9962],[133.3257,33.9787],[133.4125,33.9912],[133.49,33.9696],[133.5442,33.9863],[133.6296,34.0549],[133.6304,34.1208],[133.6487,34.13],[133.6487,34.1933],[133.5554,34.2625],[133.62,34.2371],[133.6742,34.2471],[133.6884,34.2154],[133.7442,34.2754],[133.8229,34.315],[133.82,34.3537],[133.8557,34.362],[133.8296,34.33],[133.8692,34.3196],[133.895,34.3838],[134.0875,34.3421],[134.0917,34.3854],[134.1225,34.3596],[134.1196,34.3967],[134.1425,34.3996],[134.1655,34.3808],[134.1675,34.3279],[134.1912,34.3317],[134.1834,34.3537],[134.2129,34.35],[134.2067,34.3688],[134.2325,34.3396],[134.2509,34.3529],[134.2688,34.3349],[134.2592,34.2862],[134.3641,34.2504],[134.38,34.2629],[134.435,34.2096],[134.5758,34.2221],[134.5891,34.2404],[134.5854,34.2041],[134.6187,34.1875],[134.5921,34.1517],[134.6196,34.1408],[134.6025,34.1071],[134.5796,34.13],[134.6054,34.0825],[134.5304,34.1025],[134.5996,34.0717],[134.5908,34.0554],[134.5634,34.0671],[134.5896,34.0491],[134.5612,34.0416],[134.5979,34.0358],[134.6062,33.9841],[134.6392,34.0088],[134.6957,33.9491],[134.6621,33.9375],[134.7046,33.9325],[134.6704,33.9308],[134.7025,33.9271],[134.6995,33.9058],[134.6383,33.8721],[134.6287,33.8508],[134.6475,33.8679],[134.6442,33.8437],[134.7204,33.8475],[134.68,33.8312],[134.7504,33.835],[134.5816,33.7713],[134.57,33.7321],[134.5575,33.7437],[134.5126,33.6971],[134.365,33.6296],[134.3896,33.62],[134.3329,33.5841],[134.3633,33.5796],[134.3124,33.5771],[134.3146,33.545],[134.2921,33.5425],[134.2104,33.3992],[134.1775,33.2446],[134.0329,33.3758],[134.03,33.4129],[133.9583,33.442],[133.9149,33.4962],[133.77,33.5145],[133.7333,33.5387],[133.5688,33.5048],[133.5787,33.5434],[133.5558,33.5546],[133.5471,33.5225],[133.575,33.4954],[133.4966,33.4612],[133.4625,33.4738],[133.4937,33.4608],[133.3992,33.4446],[133.3512,33.4175],[133.4033,33.4154],[133.4167,33.4396],[133.4566,33.4196],[133.3459,33.3996],[133.3192,33.3537],[133.3229,33.3825],[133.2962,33.3892],[133.2612,33.3666],[133.2646,33.3408],[133.2321,33.3275],[133.2604,33.3117],[133.2396,33.2958],[133.2654,33.2558],[133.2413,33.1983],[133.2121,33.1875],[133.2246,33.1541],[133.185,33.1629],[133.1079,33.0775],[133.0966,33.0229],[133.02,33.0338],[132.9987,32.9833]]],[[[138.3412,37.9642],[138.2775,38.0046],[138.2542,37.9629],[138.2296,37.9759],[138.2396,38.0867],[138.3283,38.1995],[138.4337,38.2608],[138.4616,38.3245],[138.5157,38.3321],[138.4929,38.2049],[138.4229,38.0658],[138.4408,38.0463],[138.4366,38.082],[138.4766,38.0637],[138.5729,38.08],[138.5004,37.92],[138.3608,37.8304],[138.2191,37.8079],[138.2054,37.8266],[138.2675,37.8479],[138.2838,37.9192],[138.3412,37.9642]]],[[[129.1339,28.255],[129.3051,28.2721],[129.2508,28.2754],[129.2113,28.3067],[129.305,28.3313],[129.3384,28.3696],[129.4016,28.3578],[129.3949,28.3871],[129.4492,28.382],[129.4591,28.4162],[129.4718,28.398],[129.4916,28.4137],[129.4983,28.3821],[129.5392,28.4628],[129.5583,28.4496],[129.6217,28.4787],[129.5895,28.4159],[129.6199,28.4521],[129.6367,28.4171],[129.6587,28.4342],[129.6472,28.4692],[129.6729,28.4542],[129.6445,28.5016],[129.6913,28.53],[129.7221,28.46],[129.6649,28.3979],[129.6134,28.4003],[129.5655,28.3349],[129.5337,28.3275],[129.5383,28.3063],[129.4549,28.2954],[129.4442,28.2462],[129.4116,28.2537],[129.4787,28.2134],[129.4066,28.193],[129.4008,28.1529],[129.3387,28.1691],[129.3688,28.1533],[129.3791,28.1088],[129.3691,28.132],[129.2957,28.1496],[129.2826,28.1996],[129.2629,28.1842],[129.2942,28.2237],[129.2542,28.2329],[129.2467,28.2037],[129.1339,28.255]]],[[[134.995,34.6087],[135.0213,34.5658],[134.8987,34.4192],[134.8963,34.3491],[134.9563,34.2692],[134.7317,34.1879],[134.7012,34.2175],[134.7204,34.2558],[134.6591,34.2404],[134.6763,34.2567],[134.6554,34.295],[134.6883,34.3313],[134.7333,34.3271],[134.7971,34.4483],[134.995,34.6087]]],[[[129.9738,32.3575],[130.0446,32.49],[130.0208,32.5371],[130.045,32.5137],[130.1183,32.5496],[130.1996,32.5366],[130.2162,32.4225],[130.1938,32.3875],[130.2204,32.3916],[130.2129,32.3375],[130.1783,32.3104],[130.1754,32.3391],[130.1584,32.3354],[130.1396,32.2992],[130.1621,32.2908],[130.0904,32.2542],[130.1013,32.2316],[130.0808,32.2429],[130.0742,32.2096],[130.0458,32.1979],[130.0283,32.2162],[130.0208,32.1888],[129.9904,32.1983],[130.0079,32.2433],[129.9662,32.2433],[130.0117,32.2996],[130.0325,32.2762],[130.0279,32.2991],[130.0478,32.3017],[130.0609,32.2796],[130.0788,32.3166],[129.9937,32.3074],[129.9738,32.3575]]],[[[130.3763,30.3725],[130.4974,30.4704],[130.6721,30.3758],[130.6571,30.3058],[130.6046,30.2508],[130.5259,30.2262],[130.4354,30.2399],[130.3763,30.3725]]],[[[131.0354,30.5658],[130.9629,30.4825],[130.9821,30.4],[130.9671,30.3742],[130.8709,30.3454],[130.848,30.4683],[130.9071,30.5033],[130.9529,30.5941],[130.9396,30.6717],[131.0567,30.8404],[131.0829,30.7933],[131.0787,30.6966],[131.0354,30.5658]]],[[[129.2287,34.3617],[129.2779,34.3733],[129.272,34.4416],[129.295,34.4329],[129.3146,34.4634],[129.2834,34.4487],[129.2737,34.4675],[129.3192,34.5379],[129.3454,34.5325],[129.3058,34.5687],[129.2871,34.5574],[129.3204,34.65],[129.3958,34.6404],[129.4091,34.6796],[129.4345,34.6733],[129.4167,34.6987],[129.4846,34.6958],[129.4783,34.6146],[129.4354,34.6175],[129.4821,34.5984],[129.4746,34.555],[129.3712,34.4541],[129.3862,34.4258],[129.3708,34.4379],[129.3804,34.4125],[129.3537,34.3883],[129.3996,34.4116],[129.3729,34.37],[129.3938,34.3592],[129.3671,34.3458],[129.3954,34.3349],[129.3663,34.3375],[129.3813,34.3125],[129.3525,34.2962],[129.2912,34.3233],[129.3008,34.3379],[129.3517,34.3196],[129.355,34.3754],[129.3208,34.3704],[129.3108,34.3371],[129.3142,34.3854],[129.2871,34.3908],[129.2892,34.3379],[129.2287,34.3617]]],[[[128.5979,32.6133],[128.6116,32.6471],[128.6441,32.6045],[128.6671,32.63],[128.6362,32.6225],[128.6762,32.6716],[128.6487,32.68],[128.6508,32.7771],[128.6825,32.7796],[128.7041,32.7379],[128.7592,32.7688],[128.7692,32.7321],[128.7971,32.7583],[128.7645,32.7617],[128.8109,32.7979],[128.8274,32.7404],[128.8604,32.7442],[128.8412,32.7108],[128.8963,32.655],[128.7717,32.6437],[128.7629,32.6191],[128.7937,32.6],[128.7733,32.5746],[128.7341,32.6062],[128.6542,32.5896],[128.5979,32.6133]]],[[[133.1821,36.2125],[133.1817,36.2912],[133.2025,36.2812],[133.1958,36.3021],[133.275,36.3512],[133.3862,36.2691],[133.3717,36.2054],[133.3408,36.1954],[133.3416,36.2204],[133.3087,36.1991],[133.3358,36.1962],[133.3416,36.1687],[133.2825,36.1846],[133.2542,36.1596],[133.232,36.17],[133.2442,36.1904],[133.1821,36.2125]]],[[[129.1662,34.1041],[129.2037,34.3308],[129.228,34.3258],[129.2233,34.2912],[129.2567,34.3096],[129.2625,34.2912],[129.2667,34.3287],[129.3104,34.3075],[129.305,34.2779],[129.3483,34.2979],[129.353,34.2767],[129.3179,34.2616],[129.3271,34.2258],[129.2962,34.2166],[129.2833,34.1279],[129.2324,34.1138],[129.215,34.0837],[129.2158,34.1121],[129.1662,34.1041]]],[[[130.2058,32.4444],[130.3592,32.5279],[130.3858,32.5246],[130.3941,32.4912],[130.4229,32.53],[130.4037,32.5517],[130.4171,32.5792],[130.3937,32.5892],[130.4391,32.6254],[130.4596,32.6133],[130.443,32.6017],[130.4546,32.5525],[130.4221,32.5508],[130.4258,32.5187],[130.4629,32.5274],[130.4034,32.3954],[130.3542,32.3763],[130.3475,32.4204],[130.3075,32.3946],[130.2617,32.4104],[130.2342,32.3845],[130.2421,32.4133],[130.2058,32.4444]]],[[[128.967,27.8241],[129.0388,27.7709],[129.023,27.7191],[128.985,27.6687],[128.9291,27.6629],[128.8787,27.7242],[128.9062,27.7633],[128.8804,27.8266],[128.8992,27.8928],[128.9721,27.8925],[128.967,27.8241]]],[[[141.1296,45.1858],[141.1404,45.2216],[141.2,45.2604],[141.3058,45.2154],[141.3312,45.15],[141.2358,45.0971],[141.1296,45.1858]]],[[[128.9925,32.9421],[129.0208,32.9779],[129.0525,32.9621],[129.0654,32.9825],[129.0437,32.9866],[129.0413,33.0275],[129.0675,33.0479],[129.0862,33.0241],[129.0746,33.0591],[129.1071,33.0883],[129.0937,33.1208],[129.1183,33.1629],[129.1204,33.0925],[129.0854,32.9858],[129.1658,33.0079],[129.1854,32.9791],[129.1408,32.9379],[129.1029,32.9591],[129.1096,32.9258],[129.0854,32.9258],[129.0838,32.8958],[129.1013,32.8608],[129.0679,32.8617],[129.065,32.8171],[129.0429,32.8225],[129.0404,32.8825],[129.0587,32.8833],[129.0388,32.9092],[129.0671,32.905],[129.0254,32.9208],[129.0358,32.9471],[128.9925,32.9421]]],[[[139.4021,42.1775],[139.4392,42.2196],[139.5625,42.2529],[139.5171,42.1775],[139.5063,42.0984],[139.4508,42.0512],[139.4204,42.0716],[139.4021,42.1775]]],[[[129.3404,33.1816],[129.3574,33.2079],[129.4004,33.1816],[129.3787,33.2241],[129.4354,33.2375],[129.4045,33.2708],[129.4454,33.2908],[129.4371,33.3483],[129.4983,33.3562],[129.5125,33.3821],[129.5216,33.3554],[129.5242,33.3812],[129.5504,33.3817],[129.5179,33.4016],[129.5558,33.4104],[129.5712,33.3583],[129.5154,33.33],[129.5312,33.31],[129.4863,33.2875],[129.5054,33.2692],[129.4662,33.2158],[129.3951,33.1729],[129.3404,33.1816]]],[[[132.1721,33.9258],[132.193,33.9325],[132.185,33.9546],[132.2358,33.9687],[132.2866,33.9571],[132.3325,33.9029],[132.42,33.9546],[132.4737,33.95],[132.375,33.9121],[132.3737,33.8625],[132.3308,33.8571],[132.3383,33.8821],[132.2825,33.9004],[132.2792,33.8696],[132.2075,33.8562],[132.1721,33.9258]]],[[[134.1421,34.4708],[134.1804,34.4883],[134.1562,34.505],[134.1725,34.5296],[134.1875,34.5171],[134.2658,34.5554],[134.3521,34.5641],[134.3392,34.4329],[134.3225,34.4571],[134.2779,34.4475],[134.318,34.4641],[134.3092,34.4779],[134.27,34.4687],[134.2383,34.4154],[134.23,34.4804],[134.1421,34.4708]]],[[[129.6421,33.7691],[129.6829,33.76],[129.6504,33.8108],[129.6879,33.8075],[129.6712,33.84],[129.7024,33.8646],[129.7716,33.8463],[129.7646,33.8108],[129.7429,33.8092],[129.7996,33.7891],[129.7587,33.7767],[129.7988,33.7633],[129.7892,33.7421],[129.7358,33.7395],[129.7166,33.7045],[129.6746,33.7292],[129.6708,33.7588],[129.6517,33.7379],[129.6421,33.7691]]]]},"okinawa":{"type":"MultiPolygon","coordinates":[[[[127.9975,26.5104],[128.0018,26.4829],[127.9396,26.4583],[127.9508,26.437],[127.8667,26.4554],[127.8321,26.4292],[127.9254,26.3008],[127.8625,26.3421],[127.8121,26.2983],[127.8187,26.2791],[127.7579,26.205],[127.7766,26.1729],[127.8233,26.1904],[127.8313,26.1659],[127.7258,26.0896],[127.66,26.0804],[127.6721,26.1492],[127.6362,26.1983],[127.6559,26.2154],[127.6934,26.1929],[127.6654,26.2175],[127.7613,26.3083],[127.7129,26.4408],[127.74,26.4229],[127.7734,26.4462],[127.8,26.4362],[127.8442,26.5046],[127.9175,26.5163],[127.9854,26.5774],[127.8971,26.6091],[127.8762,26.7116],[128.0092,26.6871],[127.9837,26.6508],[128.0075,26.6312],[128.1275,26.658],[128.1012,26.6825],[128.2309,26.7979],[128.247,26.8674],[128.3112,26.8433],[128.3229,26.7399],[128.2771,26.6749],[128.2341,26.6304],[128.147,26.63],[128.1521,26.5974],[128.1229,26.605],[128.1512,26.5675],[128.1384,26.5529],[128.0941,26.5346],[128.035,26.5529],[128.0546,26.5216],[127.9975,26.5104]]],[[[123.6629,24.3017],[123.6871,24.3041],[123.6858,24.327],[123.7108,24.3087],[123.705,24.3446],[123.7504,24.29],[123.7454,24.3375],[123.7646,24.3392],[123.7429,24.385],[123.7734,24.4304],[123.8166,24.3829],[123.875,24.3979],[123.9413,24.355],[123.9296,24.3083],[123.9054,24.3133],[123.9058,24.2679],[123.8562,24.2833],[123.8846,24.2692],[123.8791,24.2479],[123.7267,24.2929],[123.72,24.2712],[123.6834,24.2754],[123.6629,24.3017]]],[[[124.0867,24.4096],[124.0783,24.4479],[124.1204,24.4416],[124.1166,24.4762],[124.1446,24.4617],[124.1392,24.4371],[124.2233,24.4487],[124.2299,24.4929],[124.2575,24.5129],[124.2796,24.5],[124.3121,24.6033],[124.3404,24.6017],[124.3354,24.5633],[124.2538,24.46],[124.2392,24.3379],[124.215,24.3504],[124.1616,24.3279],[124.1104,24.3591],[124.1438,24.4058],[124.1234,24.4271],[124.0867,24.4096]]],[[[125.2554,24.75],[125.2641,24.7646],[125.2862,24.7482],[125.2588,24.7908],[125.2979,24.8326],[125.2717,24.9095],[125.337,24.7958],[125.4384,24.7562],[125.4729,24.7141],[125.3109,24.7071],[125.2554,24.75]]]]}};
+    const MAINLAND_BOUNDS = [[29.0,128.4],[46.2,147.0]];
+    const OKINAWA_BOUNDS = [[23.8,122.8],[27.2,129.0]];
+    const isOkinawa = w => w.prefecture === '沖縄県';
+    // STEP 3で確認済みの写真付きの5か所。新CSVに同じ滝があれば説明・写真を引き継ぎます。
+    const featuredWaterfalls = [
+      {
+        id:'akiu-otaki', name:'秋保大滝', prefecture:'宮城県', city:'仙台市太白区',
+        lat:38.27495, lng:140.6023, height:55,
+        description:'名取川が断崖から流れ落ちる豪快な滝。周囲の新緑や紅葉と合わせて楽しめます。',
+        access:'仙台市の秋保エリア。公共交通機関の運行日・時刻は事前確認が必要です。',
+        sourceUrl:'https://www.pref.miyagi.jp/soshiki/bunkazai/02akyuu.html',
+        photoUrl:'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/52/Akiu_Falls_2008.jpg/960px-Akiu_Falls_2008.jpg',
+        photoPage:'https://commons.wikimedia.org/wiki/File:Akiu_Falls_2008.jpg',
+        photoAuthor:'Crown of Lenten rose', photoLicense:'CC BY 3.0',
+        licenseUrl:'https://creativecommons.org/licenses/by/3.0/',
+        memo:null
+      },
+      {
+        id:'fukuroda', name:'袋田の滝', prefecture:'茨城県', city:'久慈郡大子町',
+        lat:36.764617, lng:140.407251, height:120,
+        description:'幅約73mの岩壁を四段になって流れ落ちる滝。「四度の滝」とも呼ばれます。',
+        access:'大子町の袋田地区。観瀑施設の料金や利用時間は町の公式情報を確認してください。',
+        sourceUrl:'https://www.town.daigo.ibaraki.jp/page/page001474.html',
+        photoUrl:'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ad/Fukuroda_Falls_17.jpg/960px-Fukuroda_Falls_17.jpg',
+        photoPage:'https://commons.wikimedia.org/wiki/File:Fukuroda_Falls_17.jpg',
+        photoAuthor:'Tak1701d', photoLicense:'CC BY-SA 3.0',
+        licenseUrl:'https://creativecommons.org/licenses/by-sa/3.0/',
+        memo:null
+      },
+      {
+        id:'kegon', name:'華厳の滝', prefecture:'栃木県', city:'日光市',
+        lat:36.7380094, lng:139.5019683, height:97,
+        description:'中禅寺湖から流れ出る水が約97mの崖を一気に落ちる、奥日光を代表する滝です。',
+        access:'中禅寺湖の東側、奥日光エリア。観瀑台の利用情報は日光市観光サイトで確認できます。',
+        sourceUrl:'https://www.nikko-kankou.org/spot/5',
+        photoUrl:'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b4/Kegon_Falls%2C_Nikko_National_Park%2C_Japan.jpg/500px-Kegon_Falls%2C_Nikko_National_Park%2C_Japan.jpg',
+        photoPage:'https://commons.wikimedia.org/wiki/File:Kegon_Falls,_Nikko_National_Park,_Japan.jpg',
+        photoAuthor:'Joli Rumi', photoLicense:'CC BY-SA 4.0',
+        licenseUrl:'https://creativecommons.org/licenses/by-sa/4.0/',
+        memo:null
+      },
+      {
+        id:'shomyo', name:'称名滝', prefecture:'富山県', city:'中新川郡立山町',
+        lat:36.5754101, lng:137.5236973, height:350,
+        description:'四段に分かれて流れる落差350mの大瀑布。立山連峰の雪解け水によって水量が変わります。',
+        access:'立山町の称名滝エリア。道路や遊歩道は季節により通行できないため、最新の開通情報を確認してください。',
+        sourceUrl:'https://www.town.tateyama.toyama.jp/soshikikarasagasu/shokokankoka/kankokoryugakari/3/9269.html',
+        photoUrl:'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Shomyo_Falls.JPG/500px-Shomyo_Falls.JPG',
+        photoPage:'https://commons.wikimedia.org/wiki/File:Shomyo_Falls.JPG',
+        photoAuthor:'Alpsdake', photoLicense:'CC BY-SA 4.0',
+        licenseUrl:'https://creativecommons.org/licenses/by-sa/4.0/',
+        memo:null
+      },
+      {
+        id:'nachi', name:'那智の滝', prefecture:'和歌山県', city:'東牟婁郡那智勝浦町',
+        lat:33.675278, lng:135.887500, height:133,
+        description:'熊野の山々に囲まれた落差133mの滝。飛瀧神社の御神体としても大切にされてきました。',
+        access:'JR紀伊勝浦駅から那智山方面のバスを利用。「那智の滝前」バス停が最寄りです。',
+        sourceUrl:'https://www.wakayama-kanko.or.jp/spots/detail_491.html',
+        photoUrl:'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bb/Nachi_Falls_201908-2.jpg/330px-Nachi_Falls_201908-2.jpg',
+        photoPage:'https://commons.wikimedia.org/wiki/File:Nachi_Falls_201908-2.jpg',
+        photoAuthor:'Suikotei', photoLicense:'CC BY-SA 4.0',
+        licenseUrl:'https://creativecommons.org/licenses/by-sa/4.0/',
+        memo:null
+      }
+    ];
+
+    let waterfalls = featuredWaterfalls.slice();
+    let visibleWaterfalls = [];
+    const markers = new Map();
+    const searchInput = document.getElementById('search-input');
+    const prefectureSelect = document.getElementById('prefecture-select');
+    const visitFilter = document.getElementById('visit-filter');
+    const filterCount = document.getElementById('filter-count');
+    const listBox = document.getElementById('waterfall-buttons');
+    // スマホ版の地域タブ。中部を「北陸・甲信越」と「東海」に分ける。
+    // 三重県は以前の設定と同じく近畿に含める（地域区分はサイト独自の運用）。
+    const REGION_GROUPS = [
+      { id:'all', label:'全国', prefectures:null },
+      { id:'hokkaido', label:'北海道', prefectures:['北海道'] },
+      { id:'tohoku', label:'東北', prefectures:['青森県','岩手県','宮城県','秋田県','山形県','福島県'] },
+      { id:'kanto', label:'関東', prefectures:['茨城県','栃木県','群馬県','埼玉県','千葉県','東京都','神奈川県'] },
+      { id:'hokuriku_koshinetsu', label:'北陸・甲信越', prefectures:['新潟県','富山県','石川県','福井県','山梨県','長野県'] },
+      { id:'tokai', label:'東海', prefectures:['岐阜県','静岡県','愛知県'] },
+      { id:'kinki', label:'近畿', prefectures:['三重県','滋賀県','京都府','大阪府','兵庫県','奈良県','和歌山県'] },
+      { id:'chugoku', label:'中国', prefectures:['鳥取県','島根県','岡山県','広島県','山口県'] },
+      { id:'shikoku', label:'四国', prefectures:['徳島県','香川県','愛媛県','高知県'] },
+      { id:'kyushu', label:'九州・沖縄', prefectures:['福岡県','佐賀県','長崎県','熊本県','大分県','宮崎県','鹿児島県','沖縄県'] }
+    ];
+    const regionTabs = document.getElementById('region-tabs');
+    let activeRegion = 'all';
+    const mobileFilterToggle=document.getElementById('mobile-filter-toggle');
+    const filterBox=document.querySelector('.filter-box');
+    mobileFilterToggle.addEventListener('click',()=>{
+      const expanded=filterBox.classList.toggle('is-expanded');
+      mobileFilterToggle.setAttribute('aria-expanded',String(expanded));
+      mobileFilterToggle.textContent=expanded?'詳細検索を閉じる −':'詳細検索を開く ＋';
+    });
+    function regionOf(prefecture){
+      return REGION_GROUPS.find(region=>region.prefectures?.includes(prefecture))?.id || 'all';
+    }
+    function showRegionTabs(){
+      regionTabs.replaceChildren();
+      for (const region of REGION_GROUPS){
+        const button=document.createElement('button');
+        button.type='button';
+        button.dataset.region=region.id;
+        button.setAttribute('aria-pressed',String(activeRegion===region.id));
+        const count=waterfalls.filter(w=>region.id==='all'||region.prefectures.includes(w.prefecture)).length;
+        button.append(document.createTextNode(region.label));
+        const badge=document.createElement('span');
+        badge.className='region-count';badge.textContent=String(count);
+        button.append(badge);
+        button.addEventListener('click',()=>{
+          if(activeRegion!==region.id){
+            activeRegion=region.id;
+            explicitlySelectedOkinawaId=null;
+            // 県が残っていると地方タブと食い違うため、県選択を解除。
+            prefectureSelect.value='';
+            // 地名検索の残留で検索結果が0件になりやすいので解除。
+            searchInput.value='';
+            closeMobileDetail(false);
+            showRegionTabs();
+            applyFilters(true);
+          }
+          regionTabs.querySelector('[data-region="'+region.id+'"]')?.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
+        });
+        regionTabs.appendChild(button);
+      }
+    }
+    const markerLayer = (typeof L === 'undefined') ? null : L.layerGroup();
+    const okinawaMarkerLayer = (typeof L === 'undefined') ? null : L.layerGroup();
+    const panel = document.getElementById('detail-panel');
+    const photo = document.getElementById('photo');
+    const fallback = document.getElementById('photo-fallback');
+    const statusBox = document.getElementById('load-status');
+    let map = null;
+    let okinawaMap = null;
+    let selectedId = null;
+    let explicitlySelectedOkinawaId = null;
+    const okinawaInset = document.getElementById('okinawa-inset');
+    const mapCanvas = document.querySelector('.map-canvas');
+    let okinawaInsetIsVisible = false;
+
+    // 沖縄は全国表示では隠す。九州・沖縄タブ、沖縄県の検索、明示的な滝の選択時だけ表示。
+    function updateOkinawaInsetVisibility(){
+      const selected = waterfalls.find(w=>w.id===selectedId);
+      const regionRequested = mobileSheetQuery.matches && activeRegion==='kyushu';
+      const prefectureRequested = prefectureSelect.value==='沖縄県';
+      const nameRequested = searchInput.value.trim()!=='' && visibleWaterfalls.length>0 && visibleWaterfalls.every(isOkinawa);
+      const selectionRequested = selected && isOkinawa(selected) && explicitlySelectedOkinawaId===selected.id;
+      const show = Boolean(regionRequested || prefectureRequested || nameRequested || selectionRequested);
+      okinawaInset.classList.toggle('is-visible', show);
+      mapCanvas.classList.toggle('has-okinawa', show);
+      okinawaInset.setAttribute('aria-hidden', String(!show));
+      if(show !== okinawaInsetIsVisible && map){
+        // 別枠を出すと本土側の幅が変わる。新しい幅に合わせて地図を再計算する。
+        map.invalidateSize({pan:false,animate:false});
+        requestAnimationFrame(()=>map.invalidateSize({pan:false,animate:false}));
+      }
+      if(show && !okinawaInsetIsVisible && okinawaMap){
+        // 非表示から表示へ変わるときはLeafletへ新しい表示サイズを知らせる。
+        requestAnimationFrame(()=>{
+          if(!okinawaInset.classList.contains('is-visible'))return;
+          okinawaMap.invalidateSize({animate:false});
+          const points=visibleWaterfalls.filter(w=>isOkinawa(w)&&hasCoords(w)).map(w=>[w.lat,w.lng]);
+          if(points.length===1)okinawaMap.setView(points[0],6,{animate:false});
+          else if(points.length>1)okinawaMap.fitBounds(L.latLngBounds(points),{padding:[24,15],maxZoom:6,animate:false});
+          else okinawaMap.fitBounds(OKINAWA_BOUNDS,{padding:[24,10],animate:false});
+        });
+      }
+      okinawaInsetIsVisible=show;
+    }
+    let fullCSVLoaded = false;
+    // 記録の正本はGoogleスプレッドシート。ローカル編集を無効化し、古いローカル記録と競合させない。
+    const SHOW_LOCAL_EDITOR = false;
+    document.getElementById('editor-box').hidden = !SHOW_LOCAL_EDITOR;
+    document.getElementById('step-label').textContent = '日本の滝百選';
+    const STORAGE_KEY = 'taki100_author_visits_v1';
+    let localRecords = {};
+    let publishedRecords = {};
+
+    // 文字データのみを扱い、画像パスには任意のJavaScript等を許可しない。
+    function safePhotoPath(value){
+      const text=String(value||'').trim();
+      if(!text)return '';
+      if(/^https:\/\//i.test(text)){
+        try{const u=new URL(text);return u.protocol==='https:'&&u.username===''&&u.password===''?u.href:'';}catch{return '';}
+      }
+      if(/^(?:\.\/)?images\/(?!.*\.\.)(?:[a-z0-9_\-]+\/)*[a-z0-9_\-]+\.(?:jpg|jpeg|png|webp)$/i.test(text))return text;
+      return '';
+    }
+    function normalizeRecords(input){
+      if(!input||typeof input!=='object'||Array.isArray(input))throw new Error('recordsの形式が違います。');
+      const clean=Object.create(null);
+      for(const [id,raw] of Object.entries(input)){
+        if(!/^(?:taki|map)-\d{3}$/.test(id)||!raw||typeof raw!=='object'||Array.isArray(raw))continue;
+        const date=(typeof raw.date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(raw.date))?raw.date:'';
+        const rate=Number(raw.rating);
+        const rating=(raw.rating!==null&&raw.rating!==''&&Number.isInteger(rate)&&rate>=1&&rate<=5)?rate:null;
+        const memo=(typeof raw.memo==='string')?raw.memo.slice(0,1000):'';
+        const photo=safePhotoPath(raw.photo);
+        clean[id]={visited:raw.visited===true,date,rating,memo,photo};
+      }
+      return clean;
+    }
+    // 新CSVの訪問記録は初期データ。要確認は攻略済み扱いしない。
+    function getVisit(w){
+      return w.csvVisit || null; // 訪問済み・日付・感想はスプレッドシートを優先（単一の正本）
+    }
+    function visited(w){return getVisit(w)?.visited===true;}
+    function pendingVisit(w){return !visited(w) && w.visitRecordState==='訪問記録あり';}
+    function missingVisit(w){return !visited(w) && !pendingVisit(w);}
+    function editorStatus(msg,error=false){
+      const el=document.getElementById('editor-status');
+      el.textContent=msg;el.classList.toggle('error',error);
+    }
+    function storeLocalRecords(){
+      try{localStorage.setItem(STORAGE_KEY,JSON.stringify(localRecords));return true;}
+      catch{editorStatus('ブラウザへの保存に失敗しました。設定や空き容量を確認してください。',true);return false;}
+    }
+    if (SHOW_LOCAL_EDITOR) {
+      try{
+        const existing=localStorage.getItem(STORAGE_KEY);
+        if(existing)localRecords=normalizeRecords(JSON.parse(existing));
+      }catch{localRecords={};}
+    }
+    function updateVisitSummary(){
+      if(!fullCSVLoaded){write('visit-summary','訪問記録：シート読込待ち');return;}
+      const confirmed=waterfalls.filter(visited).length;
+      const recorded=waterfalls.filter(w=>w.visitRecordState==='訪問記録あり').length;
+      const pending=waterfalls.filter(pendingVisit).length;
+      write('visit-summary','攻略確認済 '+confirmed+' / '+waterfalls.length+'（'+Math.round(confirmed/waterfalls.length*100)+'%）｜訪問記録あり '+recorded+'件（未判定 '+pending+'件）');
+    }
+    function fillEditor(w){
+      const fieldset=document.getElementById('visit-fieldset');
+      const editable=fullCSVLoaded&&!!w&&/^(?:taki|map)-\d{3}$/.test(w.id);
+      fieldset.disabled=!editable;
+      write('edit-target',editable?w.name+'（No.'+String(w.number).padStart(3,'0')+'）':'CSV100件を読み込んでください');
+      const record=editable?getVisit(w):null;
+      document.getElementById('edit-visited').checked=record?.visited===true;
+      document.getElementById('edit-date').value=record?.date||'';
+      document.getElementById('edit-rating').value=record?.rating?String(record.rating):'';
+      document.getElementById('edit-memo').value=record?.memo||'';
+      document.getElementById('edit-photo').value=record?.photo||'';
+    }
+    function updateVisitDisplay(w){
+      const record=getVisit(w);
+      const tag=document.getElementById('detail-visited');
+      const confirmed=record?.visited===true;
+      const pending=!confirmed&&w.visitRecordState==='訪問記録あり';
+      tag.textContent=confirmed?'✓ 攻略確認済み':pending?'訪問記録あり・要確認':'未訪問';
+      tag.classList.toggle('done',confirmed);
+      tag.classList.toggle('pending',pending);
+      write('detail-visit-date','訪問日：'+(record?.date||'未登録'));
+      write('detail-rating','おすすめ度：'+(record?.rating?'★'.repeat(record.rating)+'（'+record.rating+'/5）':'未登録'));
+      write('detail-progress','攻略状態：'+(confirmed?'訪問済み':(w.progressState||'未確認')));
+      write('detail-ease','アクセス快適度：'+(w.accessEase||'未登録'));
+      write('detail-memo',record?.memo||'メモはまだありません。');
+    }
+
+    function write(id, value){document.getElementById(id).textContent=String(value ?? '');}
+    function hasCoords(w){return Number.isFinite(w.lat)&&Number.isFinite(w.lng)&&w.lat>=24&&w.lat<=46&&w.lng>=122&&w.lng<=154;}
+    function norm(str){return String(str||'').replace(/[\s　・･「」'"（）()ヶケの]/g,'').normalize('NFKC');}
+    function positionFromLocation(location){
+      const match=String(location).trim().match(/^(北海道|東京都|京都府|大阪府|.{2,3}県)/);
+      return {prefecture:match?match[1]:'未確認',city:match?String(location).trim().slice(match[1].length):String(location).trim()};
+    }
+    // 文字列をコードとして実行せず、安全な文字データとして扱うCSV読み込み。
+    function parseCSV(text){
+      const rows=[];let row=[],cell='',inQuotes=false;
+      for(let i=0;i<text.length;i++){
+        const c=text[i];
+        if(c==='"'){
+          if(inQuotes&&text[i+1]==='"'){cell+='"';i++;}
+          else inQuotes=!inQuotes;
+        } else if(c===','&&!inQuotes){row.push(cell);cell='';}
+        else if((c==='\n'||c==='\r')&&!inQuotes){
+          if(c==='\r'&&text[i+1]==='\n')i++;
+          row.push(cell);if(row.some(v=>v.trim()!==''))rows.push(row);
+          row=[];cell='';
+        } else cell+=c;
+      }
+      row.push(cell);if(row.some(v=>v.trim()!==''))rows.push(row);
+      return rows;
+    }
+    function parseNumber(value){
+      const str=String(value??'').trim();if(!str)return null;
+      const n=Number(str);return Number.isFinite(n)?n:null;
+    }
+    function parseList(rows){
+      const result=[];
+      for(const cols of rows){
+        if(cols.length<5)continue;
+        const number=Number(String(cols[0]).replace(/^\uFEFF/,'').trim());
+        if(!Number.isInteger(number)||number<1||number>100)continue;
+        const name=String(cols[1]||'').trim();if(!name)continue;
+        const latitude=parseNumber(cols[2]);const longitude=parseNumber(cols[3]);
+        const {prefecture,city}=positionFromLocation(cols[4]);
+        const height=String(cols[5]||'').trim();
+        const fromStep3=featuredWaterfalls.find(w=>norm(w.name)===norm(name)) ||
+          featuredWaterfalls.find(w=>w.name.includes('華厳')&&name.includes('華厳')) ||
+          featuredWaterfalls.find(w=>w.name.includes('那智')&&name.includes('那智'));
+        result.push({
+          id:'taki-'+String(number).padStart(3,'0'),number,name,prefecture,city,
+          lat:latitude,lng:longitude,
+          heightText:height||null,
+          // 5か所だけ、前ステップで確認した説明・写真情報を利用。
+          description:fromStep3?.description||'詳細な紹介文は現在準備中です。',
+          access:fromStep3?.access||'アクセス・遊歩道・通行規制については、自治体や公式観光サイトで最新情報をご確認ください。',
+          sourceUrl:fromStep3?.sourceUrl||null,
+          photoUrl:fromStep3?.photoUrl||null,photoPage:fromStep3?.photoPage||null,
+          photoAuthor:fromStep3?.photoAuthor||null,photoLicense:fromStep3?.photoLicense||null,
+          licenseUrl:fromStep3?.licenseUrl||null,memo:null
+        });
+      }
+      // 同じ選定番号が重複しても1件だけにする。
+      return [...new Map(result.map(w=>[w.number,w])).values()].sort((a,b)=>a.number-b.number);
+    }
+    // Google Sheetsの表示形式（YYYY/M/D等）も扱う。
+    function normalizeVisitDate(value){
+      const s=String(value||'').trim();
+      let m=s.match(/^(\d{4})[-/.年](\d{1,2})[-/.月](\d{1,2})(?:日)?(?:\s.*)?$/);
+      if(m){
+        const y=Number(m[1]),mo=Number(m[2]),d=Number(m[3]);
+        const date=new Date(Date.UTC(y,mo-1,d));
+        if(date.getUTCFullYear()===y&&date.getUTCMonth()+1===mo&&date.getUTCDate()===d)
+          return String(y).padStart(4,'0')+'-'+String(mo).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+      }
+      m=s.match(/^Date\((\d{4}),\s*(\d{1,2}),\s*(\d{1,2})/);
+      if(m)return normalizeVisitDate(m[1]+'-'+String(Number(m[2])+1)+'-'+m[3]);
+      return '';
+    }
+    // 最新の「滝百選_マップ取込用.csv」。ヘッダー名から列を特定する。
+    function parsePersonalList(rows){
+      const headers=(rows[0]||[]).map(h=>String(h).replace(/^\uFEFF/,'').trim());
+      const idx=name=>headers.indexOf(name);
+      for(const name of ['ID','滝名','都道府県','市区町村','訪問記録状態','攻略状態（編集用）']){
+        if(idx(name)<0)throw new Error('必要な列がありません：'+name);
+      }
+      const val=(cols,key)=>idx(key)<0?'':String(cols[idx(key)]??'').trim();
+      const output=[];
+      for(const cols of rows.slice(1)){
+        const number=Number(val(cols,'ID'));
+        const name=val(cols,'滝名');
+        if(!Number.isInteger(number)||number<1||number>999||!name)continue;
+        const prefecture=val(cols,'都道府県');
+        const city=val(cols,'市区町村');
+        const latitude=parseNumber(val(cols,'緯度（編集用）'));
+        const longitude=parseNumber(val(cols,'経度（編集用）'));
+        const recordState=val(cols,'訪問記録状態');
+        const progress=val(cols,'攻略状態（編集用）');
+        const date=val(cols,'訪問日');
+        const memo=val(cols,'メモ');
+        const notionMemo=val(cols,'Notionテキスト欄');
+        const ease=val(cols,'アクセス快適度');
+        const access=val(cols,'アクセス・詳細');
+        const rawGoogle=val(cols,'Googleマップ検索URL');
+        // 列を追加した場合もサイトに反映。使わない列は空欄のままでOK。
+        const publicPhoto=safePhotoPath(val(cols,'写真URL')||val(cols,'画像URL')||val(cols,'写真ファイルパス'));
+        const rawRating=val(cols,'おすすめ度');
+        const ratingNum=/^★{1,5}$/.test(rawRating)?rawRating.length:Number(rawRating);
+        const rating=(rawRating!==''&&Number.isInteger(ratingNum)&&ratingNum>=1&&ratingNum<=5)?ratingNum:null;
+        const summary=val(cols,'紹介文')||val(cols,'滝の特徴');
+        let googleUrl='';
+        try{
+          const u=new URL(rawGoogle);
+          if(u.protocol==='https:'&&['www.google.com','google.com','maps.google.com'].includes(u.hostname)&&!u.username&&!u.password)googleUrl=u.href;
+        }catch{}
+        const featured=featuredWaterfalls.find(w=>norm(w.name)===norm(name)&&w.prefecture===prefecture);
+        output.push({
+          id:'map-'+String(number).padStart(3,'0'), number, name, prefecture, city,
+          lat:latitude,lng:longitude, heightText:featured?.height?featured.height+'m':null,
+          description:summary||featured?.description||'詳細な紹介文は現在準備中です。',
+          access:access||featured?.access||'', accessEase:ease,
+          sourceUrl:featured?.sourceUrl||null,googleUrl,
+          photoUrl:featured?.photoUrl||null,photoPage:featured?.photoPage||null,
+          photoAuthor:featured?.photoAuthor||null,photoLicense:featured?.photoLicense||null,
+          licenseUrl:featured?.licenseUrl||null,
+          visitRecordState:recordState,progressState:progress,
+          visitOrder:val(cols,'訪問順'),
+          csvVisit:{
+            visited:['訪問済み','攻略済み','到達済み'].includes(progress),
+            date:normalizeVisitDate(date),
+            rating, memo:(memo+(notionMemo?'\n'+notionMemo:'')).trim().slice(0,1000),photo:publicPhoto
+          }
+        });
+      }
+      const unique=new Map(output.map(w=>[w.number,w]));
+      if(unique.size!==100||output.length!==100){
+        throw new Error('CSVは100件である必要があります。認識 '+output.length+'件、重複除外後 '+unique.size+'件。');
+      }
+      return [...unique.values()].sort((a,b)=>a.number-b.number);
+    }
+
+    // 同名の別の滝があるため、名称だけでは照合せず都道府県も必須。
+    let oldCoordinateList=[];
+    function geoKey(w){return norm(w.name)+'|'+w.prefecture;}
+    function enrichCoordinates(list){
+      const mapByName=new Map();
+      for(const old of oldCoordinateList){
+        if(!hasCoords(old))continue;
+        const key=geoKey(old);
+        if(!mapByName.has(key))mapByName.set(key,[]);
+        mapByName.get(key).push(old);
+      }
+      const enriched=list.map(w=>{
+        if(hasCoords(w))return w;
+        const matches=mapByName.get(geoKey(w))||[];
+        const safeMatch=matches.length===1?matches[0]:null;
+        // 前回のサンプル5件は既に確認済みの座標を利用する。
+        const known=featuredWaterfalls.find(f=>norm(f.name)===norm(w.name)&&f.prefecture===w.prefecture);
+        const source=safeMatch||known;
+        if(!source||!hasCoords(source))return w;
+        return {...w,lat:source.lat,lng:source.lng,heightText:w.heightText||source.heightText||(source.height?source.height+'m':null)};
+      });
+      return enriched;
+    }
+    function migrateOldVisitKeys(personalList){
+      if(!oldCoordinateList.length)return;
+      const target=new Map(personalList.map(w=>[geoKey(w),w]));
+      for(const old of oldCoordinateList){
+        const match=target.get(geoKey(old));if(!match)continue;
+        for(const records of [localRecords,publishedRecords]){
+          if(records[old.id]&&!records[match.id])records[match.id]=records[old.id];
+        }
+      }
+      if(SHOW_LOCAL_EDITOR)storeLocalRecords();
+    }
+
+    function toFeaturedShape(w){return {...w,heightText:w.height+'m'};}
+    function infoStatus(message,warn=false){statusBox.textContent=message;statusBox.classList.toggle('warn',warn);}
+
+    // STEP 7: スマホだけ「下から開く詳細カード」を表示する。
+    const mobileSheetQuery=window.matchMedia('(max-width:850px)');
+    const sheetBackdrop=document.getElementById('sheet-backdrop');
+    const sheetClose=document.getElementById('sheet-close');
+    const mobileDetailButton=document.getElementById('show-mobile-detail');
+    let lastSheetTrigger=null;
+
+    function openMobileDetail(trigger){
+      if(!mobileSheetQuery.matches||!selectedId)return;
+      lastSheetTrigger=trigger||document.activeElement;
+      panel.scrollTop=0;
+      panel.classList.add('is-open');
+      sheetBackdrop.classList.add('is-open');
+      document.body.classList.add('sheet-open');
+      panel.setAttribute('role','dialog');
+      panel.setAttribute('aria-modal','true');
+      panel.setAttribute('aria-labelledby','detail-name');
+      // visibilityのスタイル更新を待ってからフォーカスを移す。
+      setTimeout(()=>{if(panel.classList.contains('is-open'))sheetClose.focus({preventScroll:true});},80);
+    }
+    function closeMobileDetail(restoreFocus=true){
+      if(!panel.classList.contains('is-open'))return;
+      panel.classList.remove('is-open');
+      sheetBackdrop.classList.remove('is-open');
+      document.body.classList.remove('sheet-open');
+      panel.removeAttribute('role');
+      panel.removeAttribute('aria-modal');
+      panel.removeAttribute('aria-labelledby');
+      if(restoreFocus&&lastSheetTrigger?.isConnected)lastSheetTrigger.focus({preventScroll:true});
+    }
+    sheetClose.addEventListener('click',()=>closeMobileDetail());
+    sheetBackdrop.addEventListener('click',()=>closeMobileDetail());
+    mobileDetailButton.addEventListener('click',()=>openMobileDetail(mobileDetailButton));
+    document.addEventListener('keydown',event=>{
+      if(!panel.classList.contains('is-open'))return;
+      if(event.key==='Escape'){event.preventDefault();closeMobileDetail();return;}
+      if(event.key!=='Tab')return;
+      const focusable=[...panel.querySelectorAll('a[href]:not([hidden]),button:not([disabled]):not([hidden]),input:not([disabled]),select:not([disabled]),textarea:not([disabled])')].filter(el=>el.getClientRects().length>0);
+      if(!focusable.length)return;
+      const first=focusable[0],last=focusable[focusable.length-1];
+      if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}
+      else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}
+    });
+    mobileSheetQuery.addEventListener('change',event=>{
+      if(!event.matches)closeMobileDetail(false);
+      // PC版では地域絞り込みを適用しない（モバイルの表示状態だけ維持）。
+      applyFilters(false);
+      map?.invalidateSize?.();
+      updateOkinawaInsetVisibility();
+      if(okinawaInsetIsVisible)okinawaMap?.invalidateSize?.();
+    });
+
+    function selectWaterfall(w,move=false,userInitiated=false){
+      if(userInitiated)explicitlySelectedOkinawaId=isOkinawa(w)?w.id:null;
+      selectedId=w.id;
+      updateOkinawaInsetVisibility();
+      write('detail-name',w.name);
+      write('mobile-selected-name',w.name);
+      write('detail-place',[w.prefecture,w.city].filter(Boolean).join('・'));
+      write('detail-prefecture',w.prefecture||'未確認');
+      write('detail-height',w.heightText||'未確認');
+      write('detail-description',w.description||'詳細情報は準備中です。');
+      write('detail-access',w.access||'アクセス情報は未登録です。現地の最新情報をご確認ください。');
+      updateVisitDisplay(w);
+      fillEditor(w);
+      const official=document.getElementById('official-link');
+      official.hidden=!w.sourceUrl;
+      if(w.sourceUrl)official.href=w.sourceUrl;
+      const google=document.getElementById('map-link');
+      google.hidden=!(w.googleUrl||hasCoords(w));
+      if(w.googleUrl||hasCoords(w))google.href=w.googleUrl||'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(w.lat+','+w.lng);
+      photo.hidden=true;photo.removeAttribute('src');
+      fallback.hidden=false;
+      const credit=document.getElementById('photo-credit');credit.replaceChildren();
+      const ownPhoto=safePhotoPath(getVisit(w)?.photo);
+      const displayPhoto=ownPhoto||w.photoUrl;
+      if(displayPhoto){
+        write('fallback-message','写真を読み込んでいます');
+        photo.onload=()=>{photo.hidden=false;fallback.hidden=true;};
+        photo.onerror=()=>{photo.hidden=true;fallback.hidden=false;write('fallback-message','写真を読み込めませんでした');};
+        photo.alt=w.name+'の写真';photo.src=displayPhoto;
+        if(ownPhoto){credit.textContent='筆者登録写真（掲載に必要な権利を確認してください）。';}
+        else if(w.photoPage&&w.photoAuthor&&w.licenseUrl){
+          credit.append('写真：');
+          const author=document.createElement('a');author.href=w.photoPage;author.rel='noopener noreferrer';author.target='_blank';author.textContent=w.photoAuthor;
+          const license=document.createElement('a');license.href=w.licenseUrl;license.rel='noopener noreferrer';license.target='_blank';license.textContent=w.photoLicense||'ライセンス';
+          credit.append(author,' / ',license,'（カードに合わせてトリミング）');
+        }
+      }else{
+        write('fallback-message','写真は準備中です');
+        credit.textContent='写真は今後、撮影者の許可・ライセンスを確認して追加します。';
+      }
+      document.querySelectorAll('#waterfall-buttons button').forEach(button=>{
+        const active=button.dataset.id===w.id;
+        button.classList.toggle('active',active);
+        button.setAttribute('aria-pressed',String(active));
+      });
+      if(move&&hasCoords(w)){
+        const targetMap=isOkinawa(w)?okinawaMap:map;
+        if(targetMap){
+          targetMap.setView([w.lat,w.lng],isOkinawa(w)?Math.max(targetMap.getZoom(),6):Math.max(targetMap.getZoom(),8),{animate:true});
+          markers.get(w.id)?.openPopup();
+        }
+      }
+      // スマホではパネルをページ内へスクロールせず、選択操作のときに下から開く。
+    }
+    // STEP 5：都道府県の選択肢を登録データから自動で作成する。
+    function updatePrefectureOptions(){
+      const previous = prefectureSelect.value;
+      const names = [...new Set(waterfalls.map(w=>w.prefecture).filter(p=>p&&p!=='未確認'))];
+      names.sort((a,b)=>a.localeCompare(b,'ja'));
+      prefectureSelect.replaceChildren();
+      const all=document.createElement('option'); all.value='';all.textContent='全国すべて';
+      prefectureSelect.append(all);
+      names.forEach(name=>{
+        const option=document.createElement('option');
+        option.value=name;option.textContent=name;
+        prefectureSelect.append(option);
+      });
+      // CSVの再取り込み時も、選択した都道府県が存在すれば維持する。
+      prefectureSelect.value=names.includes(previous)?previous:'';
+    }
+
+    // STEP 5：検索条件に合った滝だけを地図と一覧に表示する。
+    function applyFilters(zoomToResults=false){
+      const keyword=searchInput.value.trim().normalize('NFKC').toLocaleLowerCase('ja');
+      const prefecture=prefectureSelect.value;
+      const visitStatus=visitFilter.value;
+      const mobileRegion=mobileSheetQuery.matches ? REGION_GROUPS.find(r=>r.id===activeRegion) : null;
+      visibleWaterfalls=waterfalls.filter(w=>{
+        const matchesName=!keyword||w.name.normalize('NFKC').toLocaleLowerCase('ja').includes(keyword);
+        const matchesPrefecture=!prefecture||w.prefecture===prefecture;
+        const matchesVisit=!visitStatus||(visitStatus==='visited'?visited(w):visitStatus==='pending'?pendingVisit(w):missingVisit(w));
+        const matchesRegion=!mobileRegion||!mobileRegion.prefectures||mobileRegion.prefectures.includes(w.prefecture);
+        return matchesName&&matchesPrefecture&&matchesVisit&&matchesRegion;
+      });
+
+      if(markerLayer)markerLayer.clearLayers();
+      if(okinawaMarkerLayer)okinawaMarkerLayer.clearLayers();
+      listBox.replaceChildren();
+      let visiblePins=0;
+      const positions=[];
+      const okinawaPositions=[];
+      for(const w of visibleWaterfalls){
+        const marker=markers.get(w.id);
+        if(marker){
+          if(isOkinawa(w)){
+            if(okinawaMarkerLayer)marker.addTo(okinawaMarkerLayer);
+            okinawaPositions.push([w.lat,w.lng]);
+          }else{
+            if(markerLayer)marker.addTo(markerLayer);
+            positions.push([w.lat,w.lng]);
+          }
+          visiblePins++;
+        }
+        const button=document.createElement('button');
+        button.type='button';button.dataset.id=w.id;
+        button.textContent=(w.number?'No.'+String(w.number).padStart(3,'0')+'  ':'')+w.name;
+        if(!hasCoords(w))button.classList.add('nocoords');
+        if(visited(w))button.textContent='✓ '+button.textContent; else if(pendingVisit(w))button.textContent='◉ '+button.textContent;
+        button.setAttribute('aria-pressed','false');
+        button.addEventListener('click',()=>{selectWaterfall(w,true,true);openMobileDetail(button);});
+        listBox.appendChild(button);
+      }
+      filterCount.textContent='表示：'+visibleWaterfalls.length+'件 / 全'+waterfalls.length+'件';
+      write('pin-count',visiblePins);
+
+      if(visibleWaterfalls.length===0){
+        const empty=document.createElement('p');
+        empty.className='empty-result';
+        empty.textContent='該当する滝がありません。地域や検索条件を変更してください。';
+        listBox.appendChild(empty);
+        clearSelection();
+      }else{
+        // 現在のカードが検索対象外になったときだけ、最初の検索結果に切り替える。
+        const selected=visibleWaterfalls.find(w=>w.id===selectedId);
+        selectWaterfall(selected||visibleWaterfalls[0],false);
+      }
+
+      updateOkinawaInsetVisibility();
+      if(zoomToResults&&map){
+        if(positions.length===1){
+          map.setView(positions[0],8,{animate:true});
+          if(!okinawaPositions.length)markers.get(visibleWaterfalls.find(w=>hasCoords(w)&&!isOkinawa(w))?.id)?.openPopup();
+        }else if(positions.length>1){
+          map.fitBounds(L.latLngBounds(positions),{padding:[50,50],maxZoom:8,animate:true});
+        }else if(okinawaPositions.length){
+          // 沖縄だけの検索でも、本土側を沖縄の本来の座標へ移動させない。
+          map.fitBounds(MAINLAND_BOUNDS,{padding:[25,25],animate:true});
+        }
+        if(okinawaPositions.length&&okinawaMap){
+          if(okinawaPositions.length===1){
+            okinawaMap.setView(okinawaPositions[0],6,{animate:false});
+            if(!positions.length)markers.get(visibleWaterfalls.find(w=>hasCoords(w)&&isOkinawa(w))?.id)?.openPopup();
+          }else{okinawaMap.fitBounds(L.latLngBounds(okinawaPositions),{padding:[30,20],maxZoom:6,animate:false});}
+        }else if(okinawaMap){okinawaMap.fitBounds(OKINAWA_BOUNDS,{padding:[23,8],animate:false});}
+      }
+    }
+
+    // 検索結果が0件のとき、前の滝の詳細を誤って残さない。
+    function clearSelection(){
+      selectedId=null;
+      explicitlySelectedOkinawaId=null;
+      updateOkinawaInsetVisibility();
+      closeMobileDetail(false);
+      write('detail-name','検索結果がありません');
+      write('mobile-selected-name','検索結果がありません');
+      write('detail-place','検索条件を変更してください');
+      write('detail-prefecture','—');
+      write('detail-height','—');
+      write('detail-description','該当する滝が見つかりませんでした。');
+      write('detail-access','—');
+      write('detail-memo','—');
+      write('detail-visited','—');
+      write('detail-visit-date','訪問日：—');
+      write('detail-rating','おすすめ度：—');
+      write('detail-progress','攻略状態：—');
+      write('detail-ease','アクセス快適度：—');
+      document.getElementById('detail-visited').classList.remove('done','pending');
+      fillEditor(null);
+      photo.hidden=true; photo.removeAttribute('src');
+      fallback.hidden=false;
+      write('fallback-message','該当する滝がありません');
+      document.getElementById('official-link').hidden=true;
+      document.getElementById('map-link').hidden=true;
+      document.getElementById('photo-credit').textContent='';
+    }
+
+    function drawWaterfalls(all){
+      waterfalls=all;
+      if(markerLayer)markerLayer.clearLayers();
+      if(okinawaMarkerLayer)okinawaMarkerLayer.clearLayers();
+      markers.clear();
+      for(const w of waterfalls){
+        if((isOkinawa(w)?okinawaMap:map)&&hasCoords(w)){
+          const marker=L.circleMarker([w.lat,w.lng],{
+            radius:8,weight:2,color:'#fff',fillOpacity:1,
+            fillColor:visited(w)?'#218451':pendingVisit(w)?'#d5a339':'#778799'
+          });
+          markers.set(w.id,marker);
+          const popup=document.createElement('div');
+          const title=document.createElement('div');title.className='popup-title';title.textContent=w.name;
+          const sub=document.createElement('div');sub.className='popup-sub';sub.textContent=w.prefecture;
+          popup.append(title,sub);marker.bindPopup(popup);
+          marker.on('click',()=>{selectWaterfall(w,false,true);openMobileDetail(mobileDetailButton);});
+        }
+      }
+      write('waterfall-count',waterfalls.length);
+      updateVisitSummary();
+      updatePrefectureOptions();
+      showRegionTabs();
+      // 最初の5件表示からCSVの100件に差し替わった場合も検索条件を維持。
+      applyFilters(false);
+    }
+
+    searchInput.addEventListener('input',()=>applyFilters(true));
+    prefectureSelect.addEventListener('change',()=>{
+      if(mobileSheetQuery.matches&&prefectureSelect.value){
+        // 県を選ぶと対応する地域タブを自動で選択し、矛盾する絞り込みを防ぐ。
+        activeRegion=regionOf(prefectureSelect.value);
+        showRegionTabs();
+      }
+      applyFilters(true);
+    });
+    visitFilter.addEventListener('change',()=>applyFilters(true));
+    document.getElementById('reset-filter').addEventListener('click',()=>{
+      searchInput.value='';
+      prefectureSelect.value='';
+      visitFilter.value='';
+      activeRegion='all';
+      explicitlySelectedOkinawaId=null;
+      showRegionTabs();
+      applyFilters(false);
+      if(map)map.fitBounds(MAINLAND_BOUNDS,{padding:[35,35]});
+      if(okinawaMap)okinawaMap.fitBounds(OKINAWA_BOUNDS,{padding:[23,8]});
+      searchInput.focus();
+    });
+
+    if(typeof L==='undefined'){
+      infoStatus('地図のプログラムを読み込めません。インターネット接続を確認し、Live Serverで開いてください。',true);
+    }else{
+      map=L.map('map',{
+        scrollWheelZoom:false,zoomSnap:0.25,attributionControl:false,
+        maxBounds:[[27.0,125.0],[48.3,151.0]],maxBoundsViscosity:0.8
+      });
+      L.geoJSON(JAPAN_OUTLINE.mainland,{
+        interactive:false,style:{color:'#3d8269',weight:1.3,fillColor:'#8ac3a7',fillOpacity:0.94}
+      }).addTo(map);
+      map.fitBounds(MAINLAND_BOUNDS,{padding:[35,35]});
+      markerLayer.addTo(map);
+
+      // 沖縄だけ別の小地図へ。見た目上の配置を変えるが、滝の正しい座標を保持する。
+      okinawaMap=L.map('okinawa-map',{
+        zoomControl:false,scrollWheelZoom:false,dragging:false,touchZoom:false,
+        doubleClickZoom:false,boxZoom:false,keyboard:false,attributionControl:false,
+        zoomSnap:0.25
+      });
+      L.geoJSON(JAPAN_OUTLINE.okinawa,{
+        interactive:false,style:{color:'#3d8269',weight:1.5,fillColor:'#8ac3a7',fillOpacity:0.94}
+      }).addTo(okinawaMap);
+      okinawaMap.fitBounds(OKINAWA_BOUNDS,{padding:[30,10]});
+      okinawaMarkerLayer.addTo(okinawaMap);
+    }
+    updateOkinawaInsetVisibility();
+    drawWaterfalls(featuredWaterfalls.map(toFeaturedShape));
+
+    // 新CSVを主データとし、従来のtaki02.csvは座標の補完だけに使用する。
+    const manualPicker=document.getElementById('csv-manual');
+    const csvPicker=document.getElementById('csv-picker');
+    const coordsPicker=document.getElementById('coords-picker');
+    let personalList=null;
+    function decodeCSV(bytes){
+      try{return new TextDecoder('utf-8',{fatal:true}).decode(bytes);}
+      catch{return new TextDecoder('shift_jis').decode(bytes);}
+    }
+    function parseCSVBytes(bytes){return parseCSV(decodeCSV(bytes).replace(/^\uFEFF/,''));}
+    function displayPersonal(mode){
+      if(!personalList)return;
+      migrateOldVisitKeys(personalList);
+      const all=enrichCoordinates(personalList);
+      fullCSVLoaded=true;
+      drawWaterfalls(all);
+      const n=all.filter(hasCoords).length;
+      const pending=all.filter(w=>w.visitRecordState==='訪問記録あり'&&!visited(w)).length;
+      editorStatus('滝100件を登録しました。訪問記録ありは攻略済みと区別して表示しています。');
+      manualPicker.hidden=true;
+      infoStatus('データ取得成功（'+mode+'）：100件。地図ピン：'+n+'件、座標未登録：'+(100-n)+'件。訪問記録あり・攻略要確認：'+pending+'件。',n<100);
+    }
+    function loadMainCSV(bytes,mode){
+      const rows=parseCSVBytes(bytes);
+      const headers=rows[0]||[];
+      if(headers.includes('滝名')&&headers.includes('都道府県')){
+        personalList=parsePersonalList(rows);
+        displayPersonal(mode);
+      }else{
+        throw new Error('指定したファイルは新CSV形式ではありません。「滝百選_マップ取込用.csv」を選択してください。');
+      }
+    }
+    function loadCoordinatesCSV(bytes,mode){
+      const rows=parseCSVBytes(bytes);
+      const parsed=parseList(rows);
+      if(parsed.length<1)throw new Error('従来の座標CSVの形式を認識できません。taki02.csvを指定してください。');
+      oldCoordinateList=parsed;
+      if(personalList){displayPersonal(mode+'・座標補完');}
+      else infoStatus('座標CSV（'+mode+'）を読込済みです。続けて①滝データCSVを選択してください。');
+    }
+    // 公開CSVはブラウザ環境によってCORSで拒否されることがある。
+    // Google Visualization Data Source（JSONP）を先に試し、ダメならCSVへの直接アクセスを試す。
+    // どちらも失敗した場合にのみ同梱のローカルCSVを予備として使う。
+    function visualizationToRows(response){
+      if(!response||response.status==='error'||!response.table)throw new Error('Googleデータ取得エラー：'+(response?.errors?.[0]?.message||'レスポンス形式が違います'));
+      const cols=response.table.cols||[], entries=response.table.rows||[];
+      const headers=cols.map(c=>String(c.label||c.id||'').trim());
+      const valueOf=(cell,col)=>{
+        if(!cell)return '';
+        const v=cell.v;
+        if(v===null||v===undefined)return '';
+        // 日付型は表示値優先。ただし表示値がない場合はDate(...)から復元する。
+        if(col?.type==='date'||col?.type==='datetime')return String(cell.f||v);
+        if(typeof v==='number')return String(v);
+        return String(v);
+      };
+      const rows=entries.map(row=>cols.map((col,i)=>valueOf(row.c?.[i],col)));
+      if(headers.includes('滝名')&&headers.includes('ID'))return [headers,...rows];
+      if(rows[0]?.includes('滝名')&&rows[0]?.includes('ID'))return rows;
+      throw new Error('公開シートの列名を認識できません。公開対象のシートを確認してください。');
+    }
+    function sheetsJsonp(){
+      return new Promise((resolve,reject)=>{
+        const cb='__takiSheetCallback_'+Date.now()+'_'+Math.floor(Math.random()*1e6);
+        const script=document.createElement('script');
+        let finished=false;
+        const cleanup=()=>{if(finished)return false;finished=true;clearTimeout(timer);script.remove();try{delete window[cb];}catch{window[cb]=undefined;}return true;};
+        const timer=setTimeout(()=>{if(cleanup())reject(new Error('Googleの応答がありません（時間切れ）'));},11000);
+        window[cb]=(response)=>{
+          if(!cleanup())return;
+          try{resolve(visualizationToRows(response));}catch(e){reject(e);}
+        };
+        script.onerror=()=>{if(cleanup())reject(new Error('Googleのデータを取得できません（通信エラー）'));};
+        const u=new URL(SHEET_BASE+'/gviz/tq');
+        u.searchParams.set('gid',SHEET_GID);
+        u.searchParams.set('headers','1');
+        u.searchParams.set('tqx','out:json;responseHandler:'+cb+';reqId:1');
+        u.searchParams.set('_',String(Date.now()));
+        script.src=u.href;
+        script.referrerPolicy='strict-origin-when-cross-origin';
+        document.head.appendChild(script);
+      });
+    }
+    async function sheetsCsvFetch(){
+      const controller=new AbortController();
+      const timer=setTimeout(()=>controller.abort(),8000);
+      try{
+        const u=new URL(SHEET_CSV_URL);u.searchParams.set('_',String(Date.now()));
+        const r=await fetch(u,{cache:'no-store',signal:controller.signal});
+        if(!r.ok)throw new Error('Google CSV HTTP '+r.status);
+        return parseCSVBytes(await r.arrayBuffer());
+      }finally{clearTimeout(timer);}
+    }
+    async function bundledCsvFetch(){
+      const r=await fetch(new URL('./滝百選_マップ取込用.csv',document.baseURI),{cache:'no-store'});
+      if(!r.ok)throw new Error('予備CSV HTTP '+r.status);
+      return parseCSVBytes(await r.arrayBuffer());
+    }
+    const refreshSheetButton=document.getElementById('sheet-refresh');
+    let sheetRefreshBusy=false;
+    async function loadSheetAutomatically(){
+      if(sheetRefreshBusy)return;
+      sheetRefreshBusy=true;
+      refreshSheetButton.disabled=true;
+      infoStatus('Googleスプレッドシートから最新の滝データを取得しています…');
+      const errors=[];
+      try{
+        // JSONPはGoogleの公開データをスクリプトとして受け取り、CORSを回避する。
+        for(const attempt of [
+          {label:'Googleスプレッドシート',fn:sheetsJsonp},
+          {label:'Google公開CSV',fn:sheetsCsvFetch},
+          {label:'同梱の予備CSV',fn:bundledCsvFetch},
+        ]){
+          try{
+            const rows=await attempt.fn();
+            personalList=parsePersonalList(rows);
+            displayPersonal(attempt.label);
+            if(attempt.label==='同梱の予備CSV'){
+              infoStatus('Googleスプレッドシートに接続できないため、予備CSVの100件を表示しています。スプシの最新変更は反映されていません。「最新データを取得」で再試行できます。',true);
+            }
+            return;
+          }catch(e){errors.push(attempt.label+'：'+(e?.message||String(e)));}
+        }
+        manualPicker.hidden=false;
+        infoStatus('Googleスプレッドシートを読み込めませんでした。通信環境と公開設定を確認し、再取得するか、①からCSVを選んでください。詳細：'+errors.join(' / '),true);
+      }finally{sheetRefreshBusy=false;refreshSheetButton.disabled=false;}
+    }
+    csvPicker.addEventListener('change',async()=>{
+      const file=csvPicker.files?.[0];if(!file)return;
+      try{loadMainCSV(await file.arrayBuffer(),'ファイル選択');}
+      catch(e){manualPicker.hidden=false;infoStatus('新CSV読み込みエラー：'+e.message,true);}
+    });
+    coordsPicker.addEventListener('change',async()=>{
+      const file=coordsPicker.files?.[0];if(!file)return;
+      try{loadCoordinatesCSV(await file.arrayBuffer(),'ファイル選択');}
+      catch(e){manualPicker.hidden=false;infoStatus('座標CSV読み込みエラー：'+e.message,true);}
+    });
+
+    // STEP 6：編集中の滝についてだけ、ブラウザ内に記録を保存する。
+    document.getElementById('visit-form').addEventListener('submit',event=>{
+      event.preventDefault();
+      const w=waterfalls.find(item=>item.id===selectedId);
+      if(!fullCSVLoaded||!w)return editorStatus('先にCSV100件を読み込んでください。',true);
+      const rawPhoto=document.getElementById('edit-photo').value.trim();
+      const photoPath=safePhotoPath(rawPhoto);
+      if(rawPhoto&&!photoPath){
+        return editorStatus('写真の指定が無効です。「images/写真.jpg」または「https://...」のURLを入力してください。',true);
+      }
+      localRecords[w.id]={
+        visited:document.getElementById('edit-visited').checked,
+        date:document.getElementById('edit-date').value,
+        rating:document.getElementById('edit-rating').value?Number(document.getElementById('edit-rating').value):null,
+        memo:document.getElementById('edit-memo').value.slice(0,1000),
+        photo:photoPath
+      };
+      if(storeLocalRecords()){
+        drawWaterfalls(waterfalls.slice());
+        editorStatus('「'+w.name+'」の記録をこのブラウザに保存しました。公開するには下のJSON書き出しが必要です。');
+      }
+    });
+
+    document.getElementById('delete-visit').addEventListener('click',()=>{
+      const w=waterfalls.find(item=>item.id===selectedId);
+      if(!fullCSVLoaded||!w)return;
+      if(!confirm('「'+w.name+'」のこのブラウザ内の訪問記録を削除しますか？'))return;
+      delete localRecords[w.id];
+      if(storeLocalRecords()){
+        drawWaterfalls(waterfalls.slice());
+        editorStatus('「'+w.name+'」のローカル記録を削除しました。');
+      }
+    });
+
+    document.getElementById('export-visits').addEventListener('click',()=>{
+      const all={...publishedRecords,...localRecords};
+      const json=JSON.stringify({version:1,records:all},null,2);
+      const blob=new Blob([json],{type:'application/json;charset=utf-8'});
+      const blobUrl=URL.createObjectURL(blob);
+      const a=document.createElement('a');
+      a.href=blobUrl;a.download='visits.json';document.body.appendChild(a);a.click();a.remove();
+      setTimeout(()=>URL.revokeObjectURL(blobUrl),1000);
+      editorStatus('訪問記録をvisits.jsonとしてダウンロードしました。大切に保管してください。');
+    });
+
+    document.getElementById('import-visits').addEventListener('change',async event=>{
+      const file=event.target.files?.[0];
+      if(!file)return;
+      try{
+        if(file.size>1024*1024)throw new Error('ファイルは1MB以下にしてください。');
+        const data=JSON.parse(await file.text());
+        const parsed=normalizeRecords(data.records);
+        if(Object.keys(localRecords).length&&!confirm('既存のローカル記録を、このJSONの記録で上書きしますか？'))return;
+        localRecords=parsed;
+        if(!storeLocalRecords())return;
+        drawWaterfalls(waterfalls.slice());
+        editorStatus('JSONから'+Object.keys(parsed).length+'件の訪問記録を読み込みました。');
+      }catch(error){editorStatus('JSON読み込みエラー：'+error.message,true);}
+      finally{event.target.value='';}
+    });
+
+    // 将来の公開用：サーバーにvisits.jsonを置けば、一般閲覧者にも訪問記録が表示される。
+    // ファイルがまだ無い・HTTP403の場合は何もせず、ローカル編集を優先する。
+    async function loadPublishedVisits(){
+      try{
+        const response=await fetch(new URL('./visits.json',document.baseURI),{cache:'no-store'});
+        if(!response.ok)return;
+        const data=await response.json();
+        publishedRecords=normalizeRecords(data.records);
+        if(personalList)migrateOldVisitKeys(personalList);
+        drawWaterfalls(waterfalls.slice());
+      }catch{ /* visits.json はSTEP 6では任意ファイルです。 */ }
+    }
+
+    refreshSheetButton.addEventListener('click',()=>loadSheetAutomatically());
+    loadSheetAutomatically();
+  </script>
+</body>
+</html>
