@@ -1038,21 +1038,45 @@
       }
       // スマホではパネルをページ内へスクロールせず、選択操作のときに下から開く。
     }
-    // STEP 5：都道府県の選択肢を登録データから自動で作成する。
+    // STEP 5：都道府県は五十音順ではなく、北海道から沖縄までの地域順に表示する。
+    // 地域タブと同じ REGION_GROUPS を使い、PC版とスマホ版で並びを統一する。
     function updatePrefectureOptions(){
       const previous = prefectureSelect.value;
       const names = [...new Set(waterfalls.map(w=>w.prefecture).filter(p=>p&&p!=='未確認'))];
-      names.sort((a,b)=>a.localeCompare(b,'ja'));
+      const available = new Set(names);
+      const listed = new Set();
       prefectureSelect.replaceChildren();
       const all=document.createElement('option'); all.value='';all.textContent='全国すべて';
       prefectureSelect.append(all);
-      names.forEach(name=>{
-        const option=document.createElement('option');
-        option.value=name;option.textContent=name;
-        prefectureSelect.append(option);
-      });
+      // データがある都道府県だけを、地域見出し付きで北から南へ並べる。
+      for(const region of REGION_GROUPS){
+        if(!region.prefectures)continue;
+        const matching = region.prefectures.filter(name=>available.has(name));
+        if(!matching.length)continue;
+        const group=document.createElement('optgroup');
+        group.label=region.label;
+        for(const name of matching){
+          const option=document.createElement('option');
+          option.value=name;option.textContent=name;
+          group.append(option);
+          listed.add(name);
+        }
+        prefectureSelect.append(group);
+      }
+      // 万一、地域定義にない都道府県名が入ったときも選択できるようにする。
+      const others=names.filter(name=>!listed.has(name)).sort((a,b)=>a.localeCompare(b,'ja'));
+      if(others.length){
+        const group=document.createElement('optgroup');
+        group.label='その他';
+        for(const name of others){
+          const option=document.createElement('option');
+          option.value=name;option.textContent=name;
+          group.append(option);
+        }
+        prefectureSelect.append(group);
+      }
       // CSVの再取り込み時も、選択した都道府県が存在すれば維持する。
-      prefectureSelect.value=names.includes(previous)?previous:'';
+      prefectureSelect.value=available.has(previous)?previous:'';
     }
 
     // STEP 5：検索条件に合った滝だけを地図と一覧に表示する。
