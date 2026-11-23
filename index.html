@@ -292,6 +292,29 @@
       }
       .okinawa-caption{padding:7px 10px}
     }
+
+    /* 地域選択時だけ、滝名を地図の上に配置する。ピンをふさがないよう自動回避。 */
+    .taki-name-overlay{position:absolute;inset:0;z-index:645;pointer-events:none;overflow:hidden}
+    .taki-name-lines{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:hidden}
+    .taki-name-label{
+      position:absolute;display:block;max-width:195px;min-height:23px;padding:4px 7px;
+      border:1px solid #d2dfd6;border-radius:7px;background:rgba(255,255,255,.96);
+      color:#214d3b;box-shadow:0 2px 8px rgba(26,61,45,.12);
+      font:700 11.5px/1.3 -apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN',Meiryo,sans-serif;
+      text-align:left;white-space:normal;overflow-wrap:anywhere;cursor:pointer;
+      pointer-events:auto;touch-action:manipulation;
+    }
+    .taki-name-label:hover,.taki-name-label:focus-visible{background:#e8f4ec;border-color:#6b9b7b;outline:2px solid #b1d5b9;outline-offset:1px}
+    .taki-name-label.is-selected{border-color:#1a7953;background:#e5f5e9;color:#154832;box-shadow:0 2px 9px rgba(21,96,62,.18)}
+    .taki-name-line{stroke:#476e5c;stroke-width:1.15;stroke-linecap:round;opacity:.72;fill:none;vector-effect:non-scaling-stroke}
+    .map-name-tip{display:block;margin-top:6px;font-size:11px;color:#47745c}
+    @media(max-width:850px){
+      .taki-name-label{font-size:10.5px;line-height:1.22;min-height:20px;padding:3px 5px;border-radius:6px}
+    }
+    @media(max-width:560px){
+      body.region-labeled #map{height:54svh;min-height:380px;max-height:525px}
+      .taki-name-label{font-size:10px}
+    }
   </style>
 </head>
 <body>
@@ -358,7 +381,7 @@
           <span id="mobile-selected-name">滝を選択してください</span>
           <button id="show-mobile-detail" type="button">情報を見る <span aria-hidden="true">↗</span></button>
         </div>
-        <div class="map-caption"><div class="legend"><span><i class="legend-dot done"></i>訪問済み</span><span><i class="legend-dot pending"></i>記録あり・要確認</span><span><i class="legend-dot todo"></i>未訪問</span></div><span class="map-caption-hint">滝のピンを選ぶと詳細が開きます。</span><span id="prefecture-border-error" hidden style="color:#a35d2b;font-weight:600">県境を表示できませんでした。</span></div>
+        <div class="map-caption"><div class="legend"><span><i class="legend-dot done"></i>訪問済み</span><span><i class="legend-dot pending"></i>記録あり・要確認</span><span><i class="legend-dot todo"></i>未訪問</span></div><span class="map-caption-hint">滝のピンを選ぶと詳細が開きます。</span><span id="map-name-tip" class="map-name-tip" hidden></span><span id="prefecture-border-error" hidden style="color:#a35d2b;font-weight:600">県境を表示できませんでした。</span></div>
       </section>
       <div class="sheet-backdrop" id="sheet-backdrop" aria-hidden="true"></div>
       <aside class="panel" id="detail-panel" aria-live="polite" aria-label="選択した滝の情報">
@@ -642,6 +665,133 @@
     const okinawaInset = document.getElementById('okinawa-inset');
     const mapCanvas = document.querySelector('.map-canvas');
     let okinawaInsetIsVisible = false;
+
+    // 地域別モードでは見えている滝の名称をピン近くに配置。
+    // 画面上の矩形衝突を避け、離したラベルは細いガイド線でピンに戻す。
+    const nameOverlays=new WeakMap();
+    let nameLabelFrame=0;
+    function ensureNameOverlay(targetMap){
+      if(nameOverlays.has(targetMap))return nameOverlays.get(targetMap);
+      const root=document.createElement('div');
+      root.className='taki-name-overlay';
+      root.setAttribute('aria-label','滝の名称');
+      const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+      svg.classList.add('taki-name-lines');
+      svg.setAttribute('aria-hidden','true');
+      root.appendChild(svg);
+      targetMap.getContainer().appendChild(root);
+      nameOverlays.set(targetMap,{root,svg});
+      targetMap.on('movestart zoomstart',()=>{root.style.visibility='hidden';});
+      targetMap.on('moveend zoomend resize',()=>scheduleNameLabels());
+      return {root,svg};
+    }
+    function nameRectsOverlap(a,b,pad=3){
+      return a.x<b.x+b.w+pad&&a.x+a.w+pad>b.x&&a.y<b.y+b.h+pad&&a.y+a.h+pad>b.y;
+    }
+    function scheduleNameLabels(){
+      if(!map)return;
+      if(nameLabelFrame)cancelAnimationFrame(nameLabelFrame);
+      nameLabelFrame=requestAnimationFrame(()=>{
+        nameLabelFrame=0;
+        const shown=activeRegion!=='all'||Boolean(prefectureSelect.value);
+        document.body.classList.toggle('region-labeled',shown);
+        renderMapNameLabels(map,false,shown);
+        if(okinawaMap)renderMapNameLabels(okinawaMap,true,shown&&okinawaInsetIsVisible);
+      });
+    }
+    function renderMapNameLabels(targetMap,onlyOkinawa,enabled){
+      const {root,svg}=ensureNameOverlay(targetMap);
+      root.style.visibility='visible';
+      root.replaceChildren(svg);
+      svg.replaceChildren();
+      if(!enabled){
+        if(!onlyOkinawa)document.getElementById('map-name-tip').hidden=true;
+        return 0;
+      }
+      const width=targetMap.getSize().x,height=targetMap.getSize().y;
+      if(width<100||height<100)return 0;
+      svg.setAttribute('viewBox','0 0 '+width+' '+height);
+      const mobile=window.matchMedia('(max-width: 850px)').matches;
+      const pinRadius=mobile?6:8;
+      const candidates=visibleWaterfalls.filter(w=>hasCoords(w)&&isOkinawa(w)===onlyOkinawa).map(w=>({
+        w,p:targetMap.latLngToContainerPoint([w.lat,w.lng])
+      })).filter(item=>item.p.x>=0&&item.p.x<=width&&item.p.y>=0&&item.p.y<=height);
+      // 密集地点を先に置くと、込み合った滝の名前を優先して配置できる。
+      candidates.forEach(item=>{
+        item.nearest=Math.min(9999,...candidates.filter(other=>other!==item).map(other=>item.p.distanceTo(other.p)));
+      });
+      candidates.sort((a,b)=>(a.w.id===selectedId?-1:b.w.id===selectedId?1:0)||(a.nearest-b.nearest)||(a.p.y-b.p.y));
+      const used=[];
+      // Leafletのズームボタンにもラベルが乗らないようにする。
+      if(!onlyOkinawa)used.push({x:0,y:0,w:49,h:86});
+      const dirs=[[1,0],[-1,0],[0,-1],[0,1],[1,-1],[-1,-1],[1,1],[-1,1]];
+      let placed=0;
+      for(const {w,p} of candidates){
+        const label=document.createElement('button');
+        label.type='button';label.className='taki-name-label';
+        if(w.id===selectedId)label.classList.add('is-selected');
+        label.textContent=w.name;
+        label.title=w.name+'（'+w.prefecture+'）';
+        label.setAttribute('aria-label',w.name+'の詳細を見る');
+        label.style.maxWidth=Math.min(mobile?168:200,Math.floor(width*.56))+'px';
+        label.style.left='-1000px';label.style.top='0';
+        root.appendChild(label);
+        L.DomEvent.disableClickPropagation(label);
+        L.DomEvent.disableScrollPropagation(label);
+        label.addEventListener('click',()=>{
+          selectWaterfall(w,false,true);
+          openMobileDetail(mobileDetailButton);
+          scheduleNameLabels();
+        });
+        const wpx=label.offsetWidth,hpx=label.offsetHeight;
+        let found=null;
+        const rings=[0,8,18,30,45,65,88,115,145];
+        const nudges=[0,-13,13,-27,27,-41,41];
+        outer:for(const ring of rings){
+          const delta=pinRadius+5+ring;
+          for(const [dx,dy] of dirs){
+            for(const nudge of nudges){
+              const x=(dx===1?p.x+delta:dx===-1?p.x-delta-wpx:p.x-wpx/2)+(dy!==0?nudge:0);
+              const y=(dy===1?p.y+delta:dy===-1?p.y-delta-hpx:p.y-hpx/2)+(dx!==0?nudge:0);
+              const box={x,y,w:wpx,h:hpx};
+              const edge=5;
+              if(x<edge||y<edge||x+wpx>width-edge||y+hpx>height-edge)continue;
+              if(used.some(rect=>nameRectsOverlap(box,rect,3)))continue;
+              if(candidates.some(item=>{
+                const dot={x:item.p.x-pinRadius-2,y:item.p.y-pinRadius-2,w:2*pinRadius+4,h:2*pinRadius+4};
+                return nameRectsOverlap(box,dot,1);
+              }))continue;
+              found=box;break outer;
+            }
+          }
+        }
+        if(!found){label.remove();continue;}
+        label.style.left=Math.round(found.x)+'px';
+        label.style.top=Math.round(found.y)+'px';
+        used.push(found);placed++;
+        const cx=Math.max(found.x,Math.min(p.x,found.x+found.w));
+        const cy=Math.max(found.y,Math.min(p.y,found.y+found.h));
+        const dist=Math.hypot(cx-p.x,cy-p.y);
+        if(dist>18){
+          const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+          line.classList.add('taki-name-line');
+          const ratio=pinRadius/dist;
+          line.setAttribute('x1',String(p.x+(cx-p.x)*ratio));
+          line.setAttribute('y1',String(p.y+(cy-p.y)*ratio));
+          line.setAttribute('x2',String(cx));line.setAttribute('y2',String(cy));
+          svg.appendChild(line);
+        }
+      }
+      const tip=document.getElementById('map-name-tip');
+      // スマホの混雑エリアなど、全件を置けない場合は既存の一覧を案内。
+      if(!onlyOkinawa){
+        const clipped=candidates.length-placed;
+        tip.hidden=false;
+        tip.textContent=clipped>0?'滝名ラベル：'+placed+'/'+candidates.length+'件表示。重なる滝は地図下の一覧から選べます。':'滝名をタップすると詳細が開きます。';
+        if(!enabled)tip.hidden=true;
+      }
+      return placed;
+    }
 
     // 沖縄は全国表示では隠す。九州・沖縄タブ、沖縄県の検索、明示的な滝の選択時だけ表示。
     function updateOkinawaInsetVisibility(){
@@ -1036,6 +1186,7 @@
           markers.get(w.id)?.openPopup();
         }
       }
+      scheduleNameLabels();
       // スマホではパネルをページ内へスクロールせず、選択操作のときに下から開く。
     }
     // STEP 5：都道府県は五十音順ではなく、北海道から沖縄までの地域順に表示する。
@@ -1141,6 +1292,10 @@
       }
 
       updateOkinawaInsetVisibility();
+      const wantsLabels=activeRegion!=='all'||Boolean(prefectureSelect.value);
+      const hadLabels=document.body.classList.contains('region-labeled');
+      document.body.classList.toggle('region-labeled',wantsLabels);
+      if(wantsLabels!==hadLabels && map)requestAnimationFrame(()=>{map.invalidateSize({pan:false,animate:false});scheduleNameLabels();});
       const focusMap=()=>{
         if(!zoomToResults||!map)return;
         // パン・ズーム移動を停止し、該当する地域の範囲へ瞬時に切り替える。
@@ -1169,8 +1324,8 @@
         }
       };
       // 沖縄の別枠でグリッド幅が変わる場合でも、レイアウト更新後の寸法で再計算。
-      if(regionChanged)requestAnimationFrame(focusMap);
-      else focusMap();
+      if(regionChanged)requestAnimationFrame(()=>{focusMap();requestAnimationFrame(scheduleNameLabels);});
+      else {focusMap();scheduleNameLabels();}
     }
 
     // 検索結果が0件のとき、前の滝の詳細を誤って残さない。
@@ -1210,7 +1365,9 @@
       for(const w of waterfalls){
         if((isOkinawa(w)?okinawaMap:map)&&hasCoords(w)){
           const marker=L.circleMarker([w.lat,w.lng],{
-            radius:8,weight:2,color:'#fff',fillOpacity:1,
+            radius:window.matchMedia('(max-width: 850px)').matches?5.5:7.5,
+            weight:window.matchMedia('(max-width: 850px)').matches?1.5:2,
+            color:'#fff',fillOpacity:1,
             fillColor:visited(w)?'#218451':pendingVisit(w)?'#d5a339':'#778799'
           });
           markers.set(w.id,marker);
@@ -1229,6 +1386,14 @@
       applyFilters(false);
     }
 
+    window.addEventListener('resize',()=>{
+      const small=window.matchMedia('(max-width: 850px)').matches;
+      for(const m of markers.values()){
+        m.setRadius(small?5.5:7.5);
+        m.setStyle({weight:small?1.5:2});
+      }
+      scheduleNameLabels();
+    });
     searchInput.addEventListener('input',()=>applyFilters(true));
     prefectureSelect.addEventListener('change',()=>{
       if(prefectureSelect.value){
