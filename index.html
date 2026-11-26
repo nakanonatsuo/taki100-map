@@ -62,6 +62,10 @@
     .photo-box{position:relative;height:230px;background:linear-gradient(135deg,#cce1d7,#e8f1e8)}
     .photo-box img{width:100%;height:100%;object-fit:cover;display:block}
     .photo-box img[hidden],.photo-fallback[hidden]{display:none}
+    .photo-gallery-controls{position:absolute;left:10px;right:10px;bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:12px;pointer-events:none}
+    .photo-gallery-controls button{pointer-events:auto;display:flex;align-items:center;justify-content:center;width:38px;height:38px;border:1px solid rgba(255,255,255,.65);border-radius:50%;color:white;background:rgba(17,55,39,.79);font-size:21px;font-weight:700;cursor:pointer}
+    .photo-gallery-controls span{color:white;background:rgba(17,55,39,.76);border-radius:99px;padding:6px 11px;font-size:12px;font-weight:700}
+    .photo-gallery-controls button:disabled{opacity:.4;cursor:default}
     .photo-fallback{position:absolute;inset:0;display:flex;justify-content:center;align-items:center;text-align:center;padding:18px;color:#416b54;font-size:13px;line-height:1.7}
     .symbol{font-size:38px;display:block;margin-bottom:4px}
     .card-body{padding:20px}
@@ -84,6 +88,27 @@
     .legend-dot{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:5px;vertical-align:middle;border:1px solid white;box-shadow:0 0 0 1px #b1bcb3}
     .legend-dot.done{background:#218451}.legend-dot.pending{background:#d5a339}.legend-dot.todo{background:#778799}
     .visit-tag.pending{background:#fff1cf;color:#765211}
+    /* 管理者向け編集モード: ?edit=1 でのみ入口を表示。編集権限はGoogle Sheets側で強制。 */
+    .admin-edit-open{display:none;width:100%;margin-top:12px;cursor:pointer;background:#eef5ef;color:#19583d;border:1px solid #b6d4c0;border-radius:10px;padding:12px;font-weight:700;font-size:13px}
+    body.admin-mode .admin-edit-open{display:block}
+    .admin-modal[hidden]{display:none}
+    .admin-modal{position:fixed;inset:0;z-index:7000;display:grid;place-items:center;padding:14px;background:rgba(13,37,28,.68)}
+    .admin-modal-card{width:min(540px,100%);max-height:min(90vh,860px);overflow:auto;background:#fff;border-radius:18px;box-shadow:0 25px 70px rgba(0,0,0,.25);padding:19px}
+    .admin-modal-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+    .admin-modal-head h2{margin:0;font-size:19px;color:#19533c}
+    .admin-modal-close{border:0;border-radius:8px;background:#edf3ee;color:#265741;min-width:44px;min-height:44px;cursor:pointer;font-size:19px}
+    .admin-modal label{font-size:12px;font-weight:700;color:#455e4f;display:block;margin:12px 0 5px}
+    .admin-modal input,.admin-modal textarea,.admin-modal select{box-sizing:border-box;display:block;width:100%;border:1px solid #b5cbb9;border-radius:9px;font:inherit;font-size:16px;color:#244334;padding:11px;background:white;min-height:44px}
+    .admin-modal textarea{min-height:88px;resize:vertical;line-height:1.6}
+    .admin-modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .admin-modal-note{font-size:12px;line-height:1.6;color:#6d796e;margin:8px 0}
+    .admin-modal-save{width:100%;min-height:47px;margin-top:14px;border:0;border-radius:10px;font-weight:700;background:#196347;color:white;cursor:pointer}
+    .admin-modal-save:disabled{opacity:.55;cursor:wait}
+    .admin-modal-message{font-size:12px;line-height:1.6;margin-top:10px;white-space:pre-wrap;color:#235c40}
+    .admin-modal-message.error{color:#9f3429}
+    .admin-modal-settings{border:1px solid #d8e7dd;background:#f6faf7;padding:12px;border-radius:11px;margin:12px 0}
+    .admin-modal-settings summary{cursor:pointer;font-weight:700;color:#28563b;font-size:12px}
+    @media(max-width:520px){.admin-modal-card{max-height:94dvh;padding:15px}.admin-modal-grid{grid-template-columns:1fr}}
     .editor-box{margin-top:16px;background:#fff;border:1px solid #dce4dd;border-radius:16px;padding:19px;box-shadow:0 8px 24px rgba(29,61,42,.05)}
     .editor-box[hidden]{display:none}
     .editor-box summary{font-size:16px;font-weight:700;color:#245c42;cursor:pointer}
@@ -193,6 +218,12 @@
     .region-tabs button[aria-pressed="true"]{background:#174b3a;border-color:#174b3a;color:#fff;box-shadow:0 3px 9px rgba(23,75,58,.16)}
     .region-tabs button:focus-visible{outline:3px solid #e2ab4c;outline-offset:2px}
     .region-count{font-size:11px;opacity:.83;margin-left:5px;font-weight:600}
+    .region-instruction{font-size:11px;color:#64816e;margin:-3px 0 6px;line-height:1.5}
+    .map-viewport-area{font-size:11px;font-weight:700;color:#24664a;background:#eaf5ed;border:1px solid #d0e5d6;border-radius:7px;padding:5px 8px;display:inline-flex;align-items:center}
+    .map-area-guide{display:flex;flex-wrap:wrap;gap:5px 10px;align-items:center;padding:9px 13px;background:#f1f7f2;border-bottom:1px solid #d9e9dd;color:#365b49;font-size:11px;line-height:1.5}
+    .map-area-guide strong{font-size:12px;font-weight:800;color:#195239}
+    @media(max-width:620px){.map-area-guide{padding:8px 10px;gap:2px 8px}}
+
     /* パン・ズームのスライドではなく、地図の内容が短く切り替わる演出 */
     .map-canvas.region-switching{animation:region-reveal .18s ease-out both}
     @keyframes region-reveal{from{opacity:.48}to{opacity:1}}
@@ -277,20 +308,51 @@
       .okinawa-caption strong{font-size:11px}
       .okinawa-caption small{font-size:8px}
     }
-    /* スマホは沖縄を地図の下へ。地図が縮みすぎず、重なりは一切発生しない。 */
+    /* スマホ: 九州と沖縄は地図内で上下に分離。九州の地形/ピンに小地図を重ねない。 */
     @media(max-width:620px){
       .map-canvas.has-okinawa{
+        display:grid;
+        position:relative;
         grid-template-columns:minmax(0,1fr);
-        grid-template-rows:auto 182px;
         grid-template-areas:"main" "inset";
+        grid-template-rows:auto 148px;
+        gap:7px;
+        padding-bottom:9px;
       }
-      .okinawa-inset{
-        height:166px;
-        width:auto;
-        margin:8px 10px 10px;
+      .map-canvas.has-okinawa #map,
+      body.region-labeled .map-canvas.has-okinawa #map{
+        grid-area:main;
+        width:100%;
+        height:42svh;
+        min-height:305px;
+        max-height:360px;
+      }
+      .map-canvas.has-okinawa .okinawa-inset{
+        grid-area:inset;
+        position:relative;
+        inset:auto;
+        z-index:1;
+        display:block;
+        width:calc(100% - 20px);
+        height:148px;
+        margin:0 10px;
         align-self:stretch;
+        box-shadow:0 3px 12px rgba(24,65,47,.12);
       }
-      .okinawa-caption{padding:7px 10px}
+      .okinawa-caption{padding:7px 9px;z-index:750}
+      .okinawa-caption strong{font-size:11px}
+      .okinawa-caption small{font-size:9px}
+    }
+    /* iPhone幅では2枚を同じ画面に収めやすい高さに調整。 */
+    @media(max-width:480px){
+      .map-canvas.has-okinawa{grid-template-rows:auto 132px;gap:7px;padding-bottom:8px}
+      .map-canvas.has-okinawa #map,
+      body.region-labeled .map-canvas.has-okinawa #map{
+        height:34svh;
+        min-height:272px;
+        max-height:295px;
+      }
+      .map-canvas.has-okinawa .okinawa-inset{height:132px}
     }
 
     /* 地域選択時だけ、滝名を地図の上に配置する。ピンをふさがないよう自動回避。 */
@@ -305,6 +367,9 @@
       pointer-events:auto;touch-action:manipulation;
     }
     .taki-name-label:hover,.taki-name-label:focus-visible{background:#e8f4ec;border-color:#6b9b7b;outline:2px solid #b1d5b9;outline-offset:1px}
+    /* 点の中の色=訪問状態、名前の左の太線/ピンの外枠=選択した地方。意味を混ぜない。 */
+    .taki-name-label.is-region-focus{border-left:3px solid #15634b;padding-left:5px;border-color:#a6c5b2;border-left-color:#15634b;box-shadow:0 2px 9px rgba(22,81,55,.16)}
+    .taki-name-label.is-region-neighbor{background:rgba(255,255,255,.82);color:#65756e;border-color:#e0e7e2;box-shadow:0 1px 4px rgba(25,57,40,.07)}
     .taki-name-label.is-selected{border-color:#1a7953;background:#e5f5e9;color:#154832;box-shadow:0 2px 9px rgba(21,96,62,.18)}
     .taki-name-line{stroke:#476e5c;stroke-width:1.15;stroke-linecap:round;opacity:.72;fill:none;vector-effect:non-scaling-stroke}
     .map-name-tip{display:block;margin-top:6px;font-size:11px;color:#47745c}
@@ -315,9 +380,20 @@
       body.region-labeled #map{height:54svh;min-height:380px;max-height:525px}
       .taki-name-label{font-size:10px}
     }
+
+    /* 全国表示だけ：地図を広く、ピンを控えめに。エリア表示のサイズ・挙動は維持。 */
+    body.national-view .layout{grid-template-columns:minmax(0,2.1fr) minmax(290px,1fr)}
+    body.national-view .map-canvas:not(.has-okinawa) #map{height:785px}
+    @media(max-width:850px){
+      body.national-view .layout{grid-template-columns:minmax(0,1fr)}
+      body.national-view .map-canvas:not(.has-okinawa) #map{height:72svh;min-height:480px;max-height:720px}
+    }
+    @media(max-width:560px){
+      body.national-view .map-canvas:not(.has-okinawa) #map{height:70svh;min-height:480px;max-height:700px}
+    }
   </style>
 </head>
-<body>
+<body class="national-view">
   <header><div class="container">
     <p class="eyebrow">WATERFALLS OF JAPAN</p>
     <h1>日本の滝百選 MAP</h1>
@@ -342,6 +418,7 @@
         <strong>エリアから探す</strong>
       </div>
       <div class="region-tabs" id="region-tabs" aria-label="日本の地域を選択"></div>
+      <p class="region-instruction">地方を選ぶと、その地域の滝だけを表示します。全国では全100件のピンを表示します。</p>
     </nav>
     <!-- 名前・都道府県・訪問状況で絞り込み -->
     <section class="filter-box" aria-label="滝の検索と絞り込み">
@@ -369,11 +446,12 @@
     </section>
     <div class="layout">
       <section class="map-frame" aria-label="日本の滝百選マップ">
+        <div id="map-area-guide" class="map-area-guide" aria-live="polite"><strong>全国の滝を表示中</strong><span>地方を選ぶと、その地方の滝だけに絞り込みます</span></div>
         <div class="map-canvas" aria-label="日本のみを表示した地図。沖縄は必要なときだけ別枠表示します">
           <div id="map" role="application" aria-label="北海道から九州までの滝の地図"></div>
           <!-- 別枠は地図に重ねず、CSS Grid の専用スペースへ配置する -->
           <div class="okinawa-inset" id="okinawa-inset" aria-label="沖縄の滝の別枠地図" aria-hidden="true">
-            <div class="okinawa-caption"><strong>沖縄・先島諸島</strong><small>※ 位置を移動して表示</small></div>
+            <div class="okinawa-caption"><strong>沖縄・先島諸島</strong><small>※ 本土とは別枠で表示</small></div>
             <div id="okinawa-map" role="application" aria-label="沖縄の滝の地図"></div>
           </div>
         </div>
@@ -381,7 +459,7 @@
           <span id="mobile-selected-name">滝を選択してください</span>
           <button id="show-mobile-detail" type="button">情報を見る <span aria-hidden="true">↗</span></button>
         </div>
-        <div class="map-caption"><div class="legend"><span><i class="legend-dot done"></i>訪問済み</span><span><i class="legend-dot pending"></i>記録あり・要確認</span><span><i class="legend-dot todo"></i>未訪問</span></div><span class="map-caption-hint">滝のピンを選ぶと詳細が開きます。</span><span id="map-name-tip" class="map-name-tip" hidden></span><span id="prefecture-border-error" hidden style="color:#a35d2b;font-weight:600">県境を表示できませんでした。</span></div>
+        <div class="map-caption"><div class="legend"><span><i class="legend-dot done"></i>訪問済み</span><span><i class="legend-dot pending"></i>記録あり・要確認</span><span><i class="legend-dot todo"></i>未訪問</span></div><span class="map-viewport-area" id="map-viewport-area" aria-live="polite">地図のエリア：全国</span><span class="map-caption-hint">滝のピンを選ぶと詳細が開きます。</span><span id="map-name-tip" class="map-name-tip" hidden></span><span id="prefecture-border-error" hidden style="color:#a35d2b;font-weight:600">県境を表示できませんでした。</span></div>
       </section>
       <div class="sheet-backdrop" id="sheet-backdrop" aria-hidden="true"></div>
       <aside class="panel" id="detail-panel" aria-live="polite" aria-label="選択した滝の情報">
@@ -393,6 +471,11 @@
         <div class="photo-box">
           <img id="photo" alt="" hidden>
           <div class="photo-fallback" id="photo-fallback"><div><span class="symbol">💧</span><span id="fallback-message">滝を選択してください</span></div></div>
+          <div id="photo-gallery-controls" class="photo-gallery-controls" hidden aria-label="写真の切り替え">
+            <button id="photo-prev" type="button" aria-label="前の写真">‹</button>
+            <span id="photo-position" aria-live="polite">1 / 1</span>
+            <button id="photo-next" type="button" aria-label="次の写真">›</button>
+          </div>
         </div>
         <div class="card-body">
           <div class="card-label">JAPAN TOP 100 WATERFALLS</div>
@@ -411,6 +494,7 @@
             <a class="button-link primary" id="official-link" href="#" target="_blank" rel="noopener noreferrer" hidden>公式観光情報 ↗</a>
             <a class="button-link" id="map-link" href="#" target="_blank" rel="noopener noreferrer" hidden>Googleマップで参考位置を見る ↗</a>
           </div>
+          <button type="button" class="admin-edit-open" id="admin-edit-open" aria-label="選択した滝のデータを編集">✏️ この滝の記録を編集</button>
           <div class="credit" id="photo-credit" hidden></div>
         </div>
       </aside>
@@ -421,6 +505,33 @@
       <div class="select-list" id="waterfall-buttons"></div>
 
     </section>
+    <!-- この編集画面はGitHub Pages内で動作。Google OAuthにより編集権限を確認し、Google Sheets APIで更新する。 -->
+    <div id="admin-modal" class="admin-modal" hidden>
+      <section class="admin-modal-card" role="dialog" aria-modal="true" aria-labelledby="admin-modal-title">
+        <div class="admin-modal-head"><h2 id="admin-modal-title">✏️ 訪問記録の編集</h2><button class="admin-modal-close" id="admin-modal-close" type="button" aria-label="編集画面を閉じる">×</button></div>
+        <p id="admin-waterfall-name" class="admin-modal-note"></p>
+        <form id="admin-edit-form">
+          <div class="admin-modal-grid">
+            <div><label for="admin-progress">攻略状態</label><select id="admin-progress"><option value="訪問済み">訪問済み</option><option value="未訪問">未訪問</option><option value="要確認">要確認</option></select></div>
+            <div><label for="admin-date">訪問日</label><input type="date" id="admin-date"></div>
+            <div><label for="admin-rating">おすすめ度</label><select id="admin-rating"><option value="">未設定</option><option value="1">★</option><option value="2">★★</option><option value="3">★★★</option><option value="4">★★★★</option><option value="5">★★★★★</option></select></div>
+            <div><label for="admin-ease">アクセス快適度</label><input id="admin-ease" maxlength="120" placeholder="例：歩きやすい"></div>
+          </div>
+          <label for="admin-memo">訪問メモ</label><textarea id="admin-memo" maxlength="1000" placeholder="現地の様子・感想など"></textarea>
+          <label for="admin-access">アクセス・詳細</label><textarea id="admin-access" maxlength="2000" placeholder="駐車場・遊歩道・注意点など"></textarea>
+          <label for="admin-photos">写真URL（複数枚は半角 | で区切る）</label><textarea id="admin-photos" maxlength="8000" placeholder="images/taki-001.jpg | images/taki-002.jpg"></textarea>
+          <p class="admin-modal-note">写真ファイル自体のアップロードは別機能です。ここでは登録済み写真のURL・パスを編集します。</p>
+          <details class="admin-modal-settings" id="admin-cloud-settings">
+            <summary>初回のみ：Google連携設定</summary>
+            <label for="admin-client-id">Google OAuth クライアントID</label>
+            <input id="admin-client-id" autocomplete="off" inputmode="url" placeholder="xxxx.apps.googleusercontent.com">
+            <p class="admin-modal-note">Google CloudのOAuthクライアントIDです。公開しても問題ない識別子ですが、Googleアカウントのパスワードやシークレットは絶対に入力しないでください。このブラウザにのみIDを保存します。</p>
+          </details>
+          <button type="submit" id="admin-save" class="admin-modal-save">Googleで認証して保存</button>
+          <p id="admin-edit-message" class="admin-modal-message" role="status" aria-live="polite"></p>
+        </form>
+      </section>
+    </div>
     <details class="editor-box" id="editor-box" hidden>
       <summary>✏️ 筆者用：訪問記録を編集する（ローカル保存）</summary>
       <div class="editor-body">
@@ -459,6 +570,7 @@
       <p>表示プログラム：2026-11-24 同期診断版</p>
     </details>
   </footer>
+  <script async defer src="https://accounts.google.com/gsi/client"></script>
   <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"
           integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="anonymous"></script>
   <script>
@@ -485,8 +597,9 @@
       return code === '47' || name.includes('沖縄') || /okinawa/i.test(name);
     }
 
+    let okinawaPrefectureBorderData=null;
     async function loadPrefectureBorderLines(){
-      if(!map || !okinawaMap || typeof L === 'undefined') return;
+      if(!map || typeof L === 'undefined') return;
       const style = { color:'#427c62', weight:0.85, opacity:0.75, fill:false };
       let lastError = null;
       for(const url of PREFECTURE_BORDER_URLS){
@@ -505,7 +618,8 @@
           if(mainland.length < 46 || okinawa.length < 1) throw new Error('47都道府県を区別できません');
           // 既存の日本の輪郭の上に県境線のみ重ねる。塗りつぶしは行わない。
           L.geoJSON({type:'FeatureCollection',features:mainland},{interactive:false,style}).addTo(map);
-          L.geoJSON({type:'FeatureCollection',features:okinawa},{interactive:false,style}).addTo(okinawaMap);
+          okinawaPrefectureBorderData={type:'FeatureCollection',features:okinawa};
+          if(okinawaMap)L.geoJSON(okinawaPrefectureBorderData,{interactive:false,style}).addTo(okinawaMap);
           return;
         }catch(e){lastError=e;}
         finally{clearTimeout(timeout);}
@@ -606,7 +720,35 @@
       { id:'kyushu', label:'九州・沖縄', prefectures:['福岡県','佐賀県','長崎県','熊本県','大分県','宮崎県','鹿児島県','沖縄県'] }
     ];
     const regionTabs = document.getElementById('region-tabs');
+    // 地域タブは「絞り込み」と地図移動を兼ねる。ドラッグでは地域の絞り込みを解除しない。
     let activeRegion = 'all';
+    function updateRegionTabSelection(){
+      for(const btn of regionTabs.querySelectorAll('button[data-region]')){
+        btn.setAttribute('aria-pressed',String(btn.dataset.region===activeRegion));
+      }
+    }
+    function updateViewportArea(){
+      const label=document.getElementById('map-viewport-area');
+      if(!label||!map)return;
+      const focus=focusedRegion();
+      if(focus){
+        label.textContent='表示中：'+focus.label+'の滝';
+        return;
+      }
+      const bounds=map.getBounds();
+      if(!bounds.isValid() || bounds.getEast()-bounds.getWest()>14){
+        label.textContent='地図のエリア：全国';updateMapAreaGuide();return;
+      }
+      const center=map.getCenter();
+      const cos=Math.cos(center.lat*Math.PI/180);
+      const closest=waterfalls.filter(w=>hasCoords(w)&&!isOkinawa(w)).reduce((best,w)=>{
+        const d=(w.lat-center.lat)**2+((w.lng-center.lng)*cos)**2;
+        return !best||d<best.d?{w,d}:best;
+      },null);
+      const group=closest&&REGION_GROUPS.find(r=>r.id===regionOf(closest.w.prefecture));
+      label.textContent='地図のエリア：'+(group?.label||'日本')+'付近';
+      updateMapAreaGuide();
+    }
     const mobileFilterToggle=document.getElementById('mobile-filter-toggle');
     const filterBox=document.querySelector('.filter-box');
     mobileFilterToggle.addEventListener('click',()=>{
@@ -616,6 +758,39 @@
     });
     function regionOf(prefecture){
       return REGION_GROUPS.find(region=>region.prefectures?.includes(prefecture))?.id || 'all';
+    }
+    function focusedRegion(){
+      return REGION_GROUPS.find(r=>r.id===activeRegion&&r.prefectures)||null;
+    }
+    function updateMapAreaGuide(){
+      const root=document.getElementById('map-area-guide');
+      if(!root)return;
+      const name=document.createElement('strong');
+      const detail=document.createElement('span');
+      const focus=focusedRegion();
+      if(focus){
+        name.textContent='選択エリア：'+focus.label+'（'+visibleWaterfalls.length+'件）';
+        detail.textContent='この地方の滝だけ表示 ／ 滝名をタップして詳細へ';
+      }else{
+        name.textContent='全国の滝を表示中（'+visibleWaterfalls.length+'件）';
+        detail.textContent='ピンをタップして詳細へ ／ 地方を選ぶと絞り込み';
+      }
+      root.replaceChildren(name,detail);
+    }
+    function applyRegionPinStyles(){
+      const mobile=window.matchMedia('(max-width: 850px)').matches;
+      const national=activeRegion==='all'&&!prefectureSelect.value;
+      for(const w of visibleWaterfalls){
+        const marker=markers.get(w.id);
+        if(!marker)continue;
+        // 全国表示だけ点を少し小さく。地域表示のピンの大きさは変更しない。
+        marker.setRadius(national?(mobile?3.9:5.25):(mobile?5.5:7.5));
+        marker.setStyle({
+          color:'#fff',
+          weight:national?(mobile?1.1:1.4):(mobile?1.6:2),
+          opacity:1,fillOpacity:1
+        });
+      }
     }
     function showRegionTabs(){
       regionTabs.replaceChildren();
@@ -662,6 +837,7 @@
     let okinawaMap = null;
     let selectedId = null;
     let explicitlySelectedOkinawaId = null;
+    let userSelectedLabelId = null;
     const okinawaInset = document.getElementById('okinawa-inset');
     const mapCanvas = document.querySelector('.map-canvas');
     let okinawaInsetIsVisible = false;
@@ -720,7 +896,9 @@
       candidates.forEach(item=>{
         item.nearest=Math.min(9999,...candidates.filter(other=>other!==item).map(other=>item.p.distanceTo(other.p)));
       });
-      candidates.sort((a,b)=>(a.w.id===selectedId?-1:b.w.id===selectedId?1:0)||(a.nearest-b.nearest)||(a.p.y-b.p.y));
+      // 地方絞り込みで候補は同じ地方のみ。選択中の滝だけを優先表示する。
+      const labelPriority=w=>w.id===userSelectedLabelId?0:1;
+      candidates.sort((a,b)=>(labelPriority(a.w)-labelPriority(b.w))||(a.nearest-b.nearest)||(a.p.y-b.p.y));
       const used=[];
       // Leafletのズームボタンにもラベルが乗らないようにする。
       if(!onlyOkinawa)used.push({x:0,y:0,w:49,h:86});
@@ -729,7 +907,7 @@
       for(const {w,p} of candidates){
         const label=document.createElement('button');
         label.type='button';label.className='taki-name-label';
-        if(w.id===selectedId)label.classList.add('is-selected');
+        if(w.id===userSelectedLabelId)label.classList.add('is-selected');
         label.textContent=w.name;
         label.title=w.name+'（'+w.prefecture+'）';
         label.setAttribute('aria-label',w.name+'の詳細を見る');
@@ -793,7 +971,38 @@
       return placed;
     }
 
-    // 沖縄は全国表示では隠す。九州・沖縄タブ、沖縄県の検索、明示的な滝の選択時だけ表示。
+    // Leafletはdisplay:noneのコンテナ上で初期化するとサイズ0を記憶して白紙になることがある。
+    // 必ず枠の表示後に沖縄の地図を初期化する。
+    function ensureOkinawaMap(){
+      if(okinawaMap || typeof L==='undefined')return;
+      const container=document.getElementById('okinawa-map');
+      if(container.getBoundingClientRect().width<20 || container.getBoundingClientRect().height<20)return;
+      okinawaMap=L.map('okinawa-map',{
+        zoomControl:false,scrollWheelZoom:false,dragging:false,touchZoom:false,
+        doubleClickZoom:false,boxZoom:false,keyboard:false,attributionControl:false,
+        zoomSnap:0.25
+      });
+      L.geoJSON(JAPAN_OUTLINE.okinawa,{
+        interactive:false,style:{color:'#3d8269',weight:1.5,fillColor:'#8ac3a7',fillOpacity:0.94}
+      }).addTo(okinawaMap);
+      if(okinawaPrefectureBorderData){
+        L.geoJSON(okinawaPrefectureBorderData,{interactive:false,style:{color:'#427c62',weight:0.85,opacity:0.75,fill:false}}).addTo(okinawaMap);
+      }
+      okinawaMarkerLayer?.addTo(okinawaMap);
+      okinawaMap.fitBounds(OKINAWA_BOUNDS,{padding:[20,10],animate:false});
+      // 初期化直後に可視サイズで座標を再計算する。
+      requestAnimationFrame(()=>{
+        if(!okinawaInset.classList.contains('is-visible'))return;
+        okinawaMap.invalidateSize({pan:false,animate:false});
+        const coords=visibleWaterfalls.filter(w=>isOkinawa(w)&&hasCoords(w)).map(w=>[w.lat,w.lng]);
+        if(coords.length===1)okinawaMap.setView(coords[0],6,{animate:false});
+        else if(coords.length>1)okinawaMap.fitBounds(L.latLngBounds(coords),{padding:[22,20],maxZoom:6,animate:false});
+        else okinawaMap.fitBounds(OKINAWA_BOUNDS,{padding:[20,10],animate:false});
+        scheduleNameLabels();
+      });
+    }
+
+    // 沖縄は九州・沖縄タブ、沖縄県の絞り込み、または沖縄の滝を選んだ時だけ表示する。
     function updateOkinawaInsetVisibility(){
       const selected = waterfalls.find(w=>w.id===selectedId);
       const regionRequested = activeRegion==='kyushu';
@@ -804,6 +1013,7 @@
       okinawaInset.classList.toggle('is-visible', show);
       mapCanvas.classList.toggle('has-okinawa', show);
       okinawaInset.setAttribute('aria-hidden', String(!show));
+      if(show)ensureOkinawaMap();
       if(show !== okinawaInsetIsVisible && map){
         // 別枠を出すと本土側の幅が変わる。新しい幅に合わせて地図を再計算する。
         map.invalidateSize({pan:false,animate:false});
@@ -839,6 +1049,11 @@
       }
       if(/^(?:\.\/)?images\/(?!.*\.\.)(?:[a-z0-9_\-]+\/)*[a-z0-9_\-]+\.(?:jpg|jpeg|png|webp)$/i.test(text))return text;
       return '';
+    }
+    // Googleスプレッドシートの「写真URL」は、複数枚なら半角 | で区切って登録する。
+    // URL・画像ファイルパスとして安全な値だけを取り込む。
+    function safePhotoList(raw){
+      return [...new Set(String(raw||'').split('|').map(safePhotoPath).filter(Boolean))].slice(0,60);
     }
     function normalizeRecords(input){
       if(!input||typeof input!=='object'||Array.isArray(input))throw new Error('recordsの形式が違います。');
@@ -1007,7 +1222,7 @@
         const access=val(cols,'アクセス・詳細');
         const rawGoogle=val(cols,'Googleマップ検索URL');
         // 列を追加した場合もサイトに反映。使わない列は空欄のままでOK。
-        const publicPhoto=safePhotoPath(val(cols,'写真URL')||val(cols,'画像URL')||val(cols,'写真ファイルパス'));
+        const publicPhoto=safePhotoList(val(cols,'写真URL')||val(cols,'画像URL')||val(cols,'写真ファイルパス')).join('|');
         const rawRating=val(cols,'おすすめ度');
         const ratingNum=/^★{1,5}$/.test(rawRating)?rawRating.length:Number(rawRating);
         const rating=(rawRating!==''&&Number.isInteger(ratingNum)&&ratingNum>=1&&ratingNum<=5)?ratingNum:null;
@@ -1027,6 +1242,7 @@
           photoUrl:featured?.photoUrl||null,photoPage:featured?.photoPage||null,
           photoAuthor:featured?.photoAuthor||null,photoLicense:featured?.photoLicense||null,
           licenseUrl:featured?.licenseUrl||null,
+          editableMemo:memo, editableAccess:access, editablePhoto:publicPhoto, notionMemo,
           visitRecordState:recordState,progressState:progress,
           visitOrder:val(cols,'訪問順'),
           csvVisit:{
@@ -1134,8 +1350,43 @@
       if(okinawaInsetIsVisible)okinawaMap?.invalidateSize?.();
     });
 
+    let currentPhotoItems=[];
+    let currentPhotoIndex=0;
+    let photoLoadSerial=0;
+    function showPhotoIndex(index){
+      const controls=document.getElementById('photo-gallery-controls');
+      if(!currentPhotoItems.length){controls.hidden=true;return;}
+      currentPhotoIndex=(index+currentPhotoItems.length)%currentPhotoItems.length;
+      const item=currentPhotoItems[currentPhotoIndex];
+      const serial=++photoLoadSerial;
+      const credit=document.getElementById('photo-credit');
+      const counter=document.getElementById('photo-position');
+      const pic=document.getElementById('photo');
+      const fallback=document.getElementById('photo-fallback');
+      counter.textContent=(currentPhotoIndex+1)+' / '+currentPhotoItems.length;
+      controls.hidden=currentPhotoItems.length<2;
+      pic.hidden=true;pic.removeAttribute('src');fallback.hidden=false;
+      write('fallback-message','写真を読み込んでいます');
+      pic.onload=()=>{if(serial!==photoLoadSerial)return;pic.hidden=false;fallback.hidden=true;};
+      pic.onerror=()=>{if(serial!==photoLoadSerial)return;pic.hidden=true;fallback.hidden=false;write('fallback-message','写真を読み込めませんでした');};
+      pic.alt=item.name+'の写真 '+(currentPhotoIndex+1)+'枚目';
+      pic.src=item.url;
+      credit.replaceChildren(); credit.hidden=false;
+      if(item.own){credit.textContent='写真：筆者撮影';}
+      else if(item.page&&item.author&&item.licenseUrl){
+        credit.append('写真：');
+        const author=document.createElement('a');author.href=item.page;author.target='_blank';author.rel='noopener noreferrer';author.textContent=item.author;
+        const license=document.createElement('a');license.href=item.licenseUrl;license.target='_blank';license.rel='noopener noreferrer';license.textContent=item.license||'ライセンス';
+        credit.append(author,' / ',license);
+      }else{credit.textContent='写真：提供元の表示情報なし';}
+    }
+    document.getElementById('photo-prev').addEventListener('click',()=>showPhotoIndex(currentPhotoIndex-1));
+    document.getElementById('photo-next').addEventListener('click',()=>showPhotoIndex(currentPhotoIndex+1));
     function selectWaterfall(w,move=false,userInitiated=false){
-      if(userInitiated)explicitlySelectedOkinawaId=isOkinawa(w)?w.id:null;
+      if(userInitiated){
+        explicitlySelectedOkinawaId=isOkinawa(w)?w.id:null;
+        userSelectedLabelId=w.id;
+      }
       selectedId=w.id;
       updateOkinawaInsetVisibility();
       write('detail-name',w.name);
@@ -1153,26 +1404,20 @@
       const google=document.getElementById('map-link');
       google.hidden=!(w.googleUrl||hasCoords(w));
       if(w.googleUrl||hasCoords(w))google.href=w.googleUrl||'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(w.lat+','+w.lng);
-      photo.hidden=true;photo.removeAttribute('src');
-      fallback.hidden=false;
-      const credit=document.getElementById('photo-credit');credit.replaceChildren();credit.hidden=true;
-      const ownPhoto=safePhotoPath(getVisit(w)?.photo);
-      const displayPhoto=ownPhoto||w.photoUrl;
-      if(displayPhoto){
-        write('fallback-message','写真を読み込んでいます');
-        photo.onload=()=>{photo.hidden=false;fallback.hidden=true;};
-        photo.onerror=()=>{photo.hidden=true;fallback.hidden=false;write('fallback-message','写真を読み込めませんでした');};
-        photo.alt=w.name+'の写真';photo.src=displayPhoto;
-        if(ownPhoto){credit.textContent='写真：筆者撮影';credit.hidden=false;}
-        else if(w.photoPage&&w.photoAuthor&&w.licenseUrl){
-          credit.append('写真：');
-          const author=document.createElement('a');author.href=w.photoPage;author.rel='noopener noreferrer';author.target='_blank';author.textContent=w.photoAuthor;
-          const license=document.createElement('a');license.href=w.licenseUrl;license.rel='noopener noreferrer';license.target='_blank';license.textContent=w.photoLicense||'ライセンス';
-          credit.append(author,' / ',license);credit.hidden=false;
-        }
-      }else{
+      // 自分の写真は複数枚表示。自身の写真がある滝は著作権表示が必要な旧画像を混ぜない。
+      const ownPhotos=safePhotoList(getVisit(w)?.photo);
+      currentPhotoItems=ownPhotos.map(url=>({url,name:w.name,own:true}));
+      if(!currentPhotoItems.length && safePhotoPath(w.photoUrl)){
+        currentPhotoItems=[{url:w.photoUrl,name:w.name,own:false,page:w.photoPage,author:w.photoAuthor,
+          licenseUrl:w.licenseUrl,license:w.photoLicense}];
+      }
+      if(currentPhotoItems.length){showPhotoIndex(0);}
+      else{
+        ++photoLoadSerial;
+        photo.hidden=true;photo.removeAttribute('src');fallback.hidden=false;
+        document.getElementById('photo-gallery-controls').hidden=true;
         write('fallback-message','写真は準備中です');
-        credit.textContent='';credit.hidden=true;
+        const credit=document.getElementById('photo-credit');credit.replaceChildren();credit.hidden=true;
       }
       document.querySelectorAll('#waterfall-buttons button').forEach(button=>{
         const active=button.dataset.id===w.id;
@@ -1232,6 +1477,7 @@
 
     // STEP 5：検索条件に合った滝だけを地図と一覧に表示する。
     function applyFilters(zoomToResults=false, regionChanged=false){
+      if(regionChanged)userSelectedLabelId=null;
       if(regionChanged && mapCanvas){
         mapCanvas.classList.remove('region-switching');
         void mapCanvas.offsetWidth; // 新しい地域を選ぶたびに短いフェードを再生
@@ -1241,11 +1487,13 @@
       const prefecture=prefectureSelect.value;
       const visitStatus=visitFilter.value;
       const selectedRegion=REGION_GROUPS.find(r=>r.id===activeRegion);
+      document.body.classList.toggle('national-view',activeRegion==='all'&&!prefecture);
       visibleWaterfalls=waterfalls.filter(w=>{
         const matchesName=!keyword||w.name.normalize('NFKC').toLocaleLowerCase('ja').includes(keyword);
         const matchesPrefecture=!prefecture||w.prefecture===prefecture;
         const matchesVisit=!visitStatus||(visitStatus==='visited'?visited(w):visitStatus==='pending'?pendingVisit(w):missingVisit(w));
-        const matchesRegion=!selectedRegion||!selectedRegion.prefectures||selectedRegion.prefectures.includes(w.prefecture);
+        // 地方を選択したら、その地方の滝のみを表示する。
+        const matchesRegion=!selectedRegion?.prefectures||selectedRegion.prefectures.includes(w.prefecture);
         return matchesName&&matchesPrefecture&&matchesVisit&&matchesRegion;
       });
 
@@ -1276,6 +1524,8 @@
         button.addEventListener('click',()=>{selectWaterfall(w,true,true);openMobileDetail(button);});
         listBox.appendChild(button);
       }
+      applyRegionPinStyles();
+      updateMapAreaGuide();
       filterCount.textContent='表示 '+visibleWaterfalls.length+' / '+waterfalls.length+'件';
       write('pin-count',visiblePins);
 
@@ -1288,7 +1538,9 @@
       }else{
         // 現在のカードが検索対象外になったときだけ、最初の検索結果に切り替える。
         const selected=visibleWaterfalls.find(w=>w.id===selectedId);
-        selectWaterfall(selected||visibleWaterfalls[0],false);
+        const inRegion=regionChanged&&selectedRegion?.prefectures?
+          visibleWaterfalls.find(w=>selectedRegion.prefectures.includes(w.prefecture)):null;
+        selectWaterfall(inRegion||selected||visibleWaterfalls[0],false);
       }
 
       updateOkinawaInsetVisibility();
@@ -1298,26 +1550,29 @@
       if(wantsLabels!==hadLabels && map)requestAnimationFrame(()=>{map.invalidateSize({pan:false,animate:false});scheduleNameLabels();});
       const focusMap=()=>{
         if(!zoomToResults||!map)return;
+        // 表示中の滝だけから画角を計算。地域タブでは必ず地域内の位置へ移動。
+        const focusMain=positions;
+        const focusOki=okinawaPositions;
         // パン・ズーム移動を停止し、該当する地域の範囲へ瞬時に切り替える。
         map.stop();
         map.invalidateSize({pan:false,animate:false});
-        if(positions.length===1){
-          map.setView(positions[0],8,{animate:false});
-        }else if(positions.length>1){
-          map.fitBounds(L.latLngBounds(positions),{padding:[50,50],maxZoom:8,animate:false});
-        }else if(okinawaPositions.length){
+        if(focusMain.length===1){
+          map.setView(focusMain[0],8,{animate:false});
+        }else if(focusMain.length>1){
+          map.fitBounds(L.latLngBounds(focusMain),{padding:activeRegion==='all'?[14,14]:[50,50],maxZoom:8,animate:false});
+        }else if(focusOki.length){
           // 沖縄だけの結果でも本土側は日本の範囲に留める。
           map.fitBounds(MAINLAND_BOUNDS,{padding:[25,25],animate:false});
         }else if(regionChanged && activeRegion==='all'){
-          map.fitBounds(MAINLAND_BOUNDS,{padding:[25,25],animate:false});
+          map.fitBounds(MAINLAND_BOUNDS,{padding:[14,14],animate:false});
         }
         if(okinawaMap){
           okinawaMap.stop();
           if(okinawaInsetIsVisible)okinawaMap.invalidateSize({pan:false,animate:false});
-          if(okinawaPositions.length===1){
-            okinawaMap.setView(okinawaPositions[0],6,{animate:false});
-          }else if(okinawaPositions.length>1){
-            okinawaMap.fitBounds(L.latLngBounds(okinawaPositions),{padding:[30,20],maxZoom:6,animate:false});
+          if(focusOki.length===1){
+            okinawaMap.setView(focusOki[0],6,{animate:false});
+          }else if(focusOki.length>1){
+            okinawaMap.fitBounds(L.latLngBounds(focusOki),{padding:[30,20],maxZoom:6,animate:false});
           }else{
             okinawaMap.fitBounds(OKINAWA_BOUNDS,{padding:[23,8],animate:false});
           }
@@ -1331,6 +1586,7 @@
     // 検索結果が0件のとき、前の滝の詳細を誤って残さない。
     function clearSelection(){
       selectedId=null;
+      userSelectedLabelId=null;
       explicitlySelectedOkinawaId=null;
       updateOkinawaInsetVisibility();
       closeMobileDetail(false);
@@ -1363,10 +1619,10 @@
       if(okinawaMarkerLayer)okinawaMarkerLayer.clearLayers();
       markers.clear();
       for(const w of waterfalls){
-        if((isOkinawa(w)?okinawaMap:map)&&hasCoords(w)){
+        if(map&&hasCoords(w)){
           const marker=L.circleMarker([w.lat,w.lng],{
-            radius:window.matchMedia('(max-width: 850px)').matches?5.5:7.5,
-            weight:window.matchMedia('(max-width: 850px)').matches?1.5:2,
+            radius:window.matchMedia('(max-width: 850px)').matches?3.9:5.25,
+            weight:window.matchMedia('(max-width: 850px)').matches?1.1:1.4,
             color:'#fff',fillOpacity:1,
             fillColor:visited(w)?'#218451':pendingVisit(w)?'#d5a339':'#778799'
           });
@@ -1382,17 +1638,19 @@
       updateVisitSummary();
       updatePrefectureOptions();
       showRegionTabs();
-      // 最初の5件表示からCSVの100件に差し替わった場合も検索条件を維持。
+      // データ再読込時も現在の地域絞り込みを維持する。
       applyFilters(false);
     }
 
     window.addEventListener('resize',()=>{
-      const small=window.matchMedia('(max-width: 850px)').matches;
-      for(const m of markers.values()){
-        m.setRadius(small?5.5:7.5);
-        m.setStyle({weight:small?1.5:2});
-      }
-      scheduleNameLabels();
+      applyRegionPinStyles();
+      // 620pxをまたぐ表示切替でも沖縄の別枠が消えないよう再判定する。
+      updateOkinawaInsetVisibility();
+      requestAnimationFrame(()=>{
+        map?.invalidateSize?.({pan:false,animate:false});
+        if(okinawaInsetIsVisible)okinawaMap?.invalidateSize?.({pan:false,animate:false});
+        scheduleNameLabels();
+      });
     });
     searchInput.addEventListener('input',()=>applyFilters(true));
     prefectureSelect.addEventListener('change',()=>{
@@ -1412,7 +1670,13 @@
       explicitlySelectedOkinawaId=null;
       showRegionTabs();
       applyFilters(false);
-      if(map){map.stop();map.fitBounds(MAINLAND_BOUNDS,{padding:[35,35],animate:false});}
+      if(map){
+        map.stop();
+        requestAnimationFrame(()=>{
+          map.invalidateSize({pan:false,animate:false});
+          map.fitBounds(MAINLAND_BOUNDS,{padding:[14,14],animate:false});
+        });
+      }
       if(okinawaMap){okinawaMap.stop();okinawaMap.fitBounds(OKINAWA_BOUNDS,{padding:[23,8],animate:false});}
       searchInput.focus();
     });
@@ -1427,20 +1691,16 @@
       L.geoJSON(JAPAN_OUTLINE.mainland,{
         interactive:false,style:{color:'#3d8269',weight:1.3,fillColor:'#8ac3a7',fillOpacity:0.94}
       }).addTo(map);
-      map.fitBounds(MAINLAND_BOUNDS,{padding:[35,35]});
+      map.fitBounds(MAINLAND_BOUNDS,{padding:[14,14]});
       markerLayer.addTo(map);
-
-      // 沖縄だけ別の小地図へ。見た目上の配置を変えるが、滝の正しい座標を保持する。
-      okinawaMap=L.map('okinawa-map',{
-        zoomControl:false,scrollWheelZoom:false,dragging:false,touchZoom:false,
-        doubleClickZoom:false,boxZoom:false,keyboard:false,attributionControl:false,
-        zoomSnap:0.25
+      map.on('dragend',()=>{
+        // 地図を動かしても選択中の地域は変えない。
+        updateViewportArea();
+        scheduleNameLabels();
       });
-      L.geoJSON(JAPAN_OUTLINE.okinawa,{
-        interactive:false,style:{color:'#3d8269',weight:1.5,fillColor:'#8ac3a7',fillOpacity:0.94}
-      }).addTo(okinawaMap);
-      okinawaMap.fitBounds(OKINAWA_BOUNDS,{padding:[30,10]});
-      okinawaMarkerLayer.addTo(okinawaMap);
+      map.on('moveend zoomend',updateViewportArea);
+
+      // 沖縄は別枠が表示されるときにensureOkinawaMap()で初期化する。
       // 海岸線とピンはそのままに、県境線だけ後から追加する。
       void loadPrefectureBorderLines();
     }
@@ -1598,6 +1858,166 @@
       try{loadCoordinatesCSV(await file.arrayBuffer(),'ファイル選択');}
       catch(e){console.warn(e);infoStatus('位置情報を読み込めませんでした。',true);}
     });
+
+    // ===== オーナー用 Web 編集: ?edit=1 をURLに付けると詳細に編集ボタン表示 =====
+    // このクエリは表示制御のみ。実際の編集権限は Google OAuth + Google Sheets API が判断する。
+    const isAdminView=new URLSearchParams(window.location.search).get('edit')==='1';
+    if(isAdminView)document.body.classList.add('admin-mode');
+    const ADMIN_SHEET_ID='1ztyW4gSMfNM1LdMyjV6KwAZTSqZBSSnpRC-3pVEioqo';
+    const ADMIN_SHEET_GID=1469396044;
+    const ADMIN_OAUTH_SCOPE='https://www.googleapis.com/auth/spreadsheets';
+    let adminAccessToken='';
+    let adminTokenExpiresAt=0;
+    let adminTokenClient=null;
+    let adminEditId=null;
+    const $admin=id=>document.getElementById(id);
+    const adminModal=$admin('admin-modal');
+    const adminClose=$admin('admin-modal-close');
+    const adminSave=$admin('admin-save');
+    const adminMsg=$admin('admin-edit-message');
+    function adminMessage(msg,err=false){adminMsg.textContent=msg;adminMsg.classList.toggle('error',err);}
+    try{$admin('admin-client-id').value=localStorage.getItem('taki100_google_oauth_client_id')||'';}catch{}
+    function openAdminEditor(){
+      if(!isAdminView)return;
+      const w=waterfalls.find(item=>item.id===selectedId);
+      if(!fullCSVLoaded||!w||!w.id.startsWith('map-')){
+        alert('Googleの滝100件データを読み込んでから、編集する滝を選んでください。');return;
+      }
+      adminEditId=w.id;
+      $admin('admin-waterfall-name').textContent=w.name+'（'+w.prefecture+' / No.'+w.number+'）';
+      $admin('admin-progress').value=visited(w)?'訪問済み':pendingVisit(w)?'要確認':'未訪問';
+      $admin('admin-date').value=getVisit(w)?.date||'';
+      $admin('admin-rating').value=getVisit(w)?.rating?String(getVisit(w).rating):'';
+      $admin('admin-ease').value=w.accessEase||'';
+      $admin('admin-memo').value=w.editableMemo||'';
+      $admin('admin-access').value=w.editableAccess||'';
+      $admin('admin-photos').value=w.editablePhoto||'';
+      $admin('admin-cloud-settings').open=!$admin('admin-client-id').value;
+      adminMessage('');
+      adminModal.hidden=false;
+      document.body.style.overflow='hidden';
+      setTimeout(()=>$admin('admin-progress').focus(),25);
+    }
+    function closeAdminEditor(){adminModal.hidden=true;adminEditId=null;document.body.style.overflow='';}
+    $admin('admin-edit-open').addEventListener('click',openAdminEditor);
+    adminClose.addEventListener('click',closeAdminEditor);
+    adminModal.addEventListener('click',event=>{if(event.target===adminModal)closeAdminEditor();});
+    document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!adminModal.hidden){event.stopImmediatePropagation();closeAdminEditor();}});
+    function adminClientId(){return $admin('admin-client-id').value.trim();}
+    async function adminAPI(path,init={}){
+      const r=await fetch('https://sheets.googleapis.com/v4/spreadsheets/'+ADMIN_SHEET_ID+path,{
+        ...init, headers:{Authorization:'Bearer '+adminAccessToken,...(init.body?{'Content-Type':'application/json'}:{})}
+      });
+      const body=await r.json().catch(()=>({}));
+      if(!r.ok)throw new Error(body.error?.message||'Google Sheets API HTTP '+r.status);
+      return body;
+    }
+    function adminColumn(n){
+      let res='';for(let x=n+1;x>0;x=Math.floor((x-1)/26))res=String.fromCharCode(65+(x-1)%26)+res;
+      return res;
+    }
+    function adminSheetName(title){return "'"+String(title).replace(/'/g,"''")+"'";}
+    async function adminSaveToSheet(){
+      const w=waterfalls.find(item=>item.id===adminEditId);
+      if(!w)throw new Error('編集中の滝が見つかりません。もう一度選択してください。');
+      const progress=$admin('admin-progress').value;
+      const date=$admin('admin-date').value;
+      const rate=$admin('admin-rating').value;
+      const ease=$admin('admin-ease').value.trim();
+      const memo=$admin('admin-memo').value.trim();
+      const access=$admin('admin-access').value.trim();
+      const rawPhotos=$admin('admin-photos').value.trim();
+      const photos=safePhotoList(rawPhotos).join('|');
+      if(rawPhotos && rawPhotos.split('|').map(v=>v.trim()).filter(Boolean).length !== (photos?photos.split('|').length:0))
+        throw new Error('写真URLに使用できない値があります。HTTPSのURLか images/xxx.jpg 形式にしてください。');
+      if(!['訪問済み','未訪問','要確認'].includes(progress))throw new Error('攻略状態が不正です。');
+      if(date&&!/^\d{4}-\d{2}-\d{2}$/.test(date))throw new Error('訪問日を確認してください。');
+      const meta=await adminAPI('?fields=sheets(properties(sheetId,title,gridProperties(columnCount)))');
+      const tabProps=meta.sheets?.find(s=>Number(s.properties?.sheetId)===ADMIN_SHEET_GID)?.properties;
+      const tab=tabProps?.title;
+      if(!tab)throw new Error('指定されたシートIDが見つかりません。');
+      const base=adminSheetName(tab);
+      const sheet=await adminAPI('/values/'+encodeURIComponent(base+'!1:300'));
+      const rows=sheet.values||[];
+      const headers=(rows[0]||[]).map(t=>String(t||'').trim());
+      const col=k=>headers.indexOf(k);
+      const idCol=col('ID'),nameCol=col('滝名');
+      if(idCol<0||nameCol<0)throw new Error('シートにIDまたは滝名の列がありません。');
+      const matches=[];
+      for(let i=1;i<rows.length;i++)if(Number(rows[i][idCol])===w.number && String(rows[i][nameCol]||'').trim()===w.name)matches.push(i);
+      if(matches.length!==1)throw new Error('滝の行を一意に特定できません。IDと滝名を確認してください。');
+      const rowNumber=matches[0]+1;
+      // 既存の19列は保持し、写真URLとおすすめ度が未作成なら安全に右端へ追加する。
+      const createdHeaders=[];
+      for(const key of ['おすすめ度','写真URL']){if(col(key)<0){headers.push(key);createdHeaders.push(key);}}
+      const capacity=Number(tabProps?.gridProperties?.columnCount||26);
+      if(headers.length>capacity){
+        await adminAPI(':batchUpdate',{method:'POST',body:JSON.stringify({requests:[{appendDimension:{sheetId:ADMIN_SHEET_GID,dimension:'COLUMNS',length:headers.length-capacity}}]})});
+      }
+      const updates={
+        '攻略状態（編集用）':progress,
+        '訪問記録状態':progress==='未訪問'?'':'訪問記録あり',
+        '訪問日':date,
+        'おすすめ度':rate,
+        'メモ':memo,
+        'アクセス・詳細':access,
+        'アクセス快適度':ease
+      };
+      updates['写真URL']=photos;
+      const headerData=createdHeaders.map(key=>({range:base+'!'+adminColumn(col(key))+'1',values:[[key]]}));
+      const data=headerData.concat(Object.entries(updates).map(([key,value])=>{
+        const index=col(key);
+        if(index<0)throw new Error('シートに「'+key+'」列がありません。');
+        return {range:base+'!'+adminColumn(index)+rowNumber,values:[[value]]};
+      }));
+      await adminAPI('/values:batchUpdate',{method:'POST',body:JSON.stringify({valueInputOption:'RAW',data})});
+      // 公開CSVへの反映には時間がかかることがあるため、保存成功時は現在の画面を直ちに更新する。
+      w.progressState=progress;
+      w.visitRecordState=updates['訪問記録状態'];
+      w.csvVisit={...w.csvVisit,visited:progress==='訪問済み',date,rating:rate?Number(rate):null,
+        memo:(memo+(w.notionMemo?'\n'+w.notionMemo:'')).trim().slice(0,1000),photo:photos};
+      w.editableMemo=memo;
+      w.editableAccess=access;
+      w.editablePhoto=photos;
+      w.access=access;
+      w.accessEase=ease;
+      drawWaterfalls(waterfalls.slice());
+      adminMessage('保存しました。Googleスプレッドシートへ反映済みです。公開CSVへの反映には少し時間がかかる場合があります。');
+      adminSave.textContent='保存済み ✓';
+      setTimeout(()=>{if(!adminModal.hidden)closeAdminEditor();adminSave.textContent='Googleで認証して保存';},850);
+    }
+    $admin('admin-edit-form').addEventListener('submit',event=>{
+      event.preventDefault();
+      if(adminSave.disabled)return;
+      const clientId=adminClientId();
+      if(!/^[\w.-]+\.apps\.googleusercontent\.com$/.test(clientId)){
+        $admin('admin-cloud-settings').open=true;
+        return adminMessage('Google Cloudで発行したOAuth クライアントIDを入力してください。設定方法は付属のガイドをご覧ください。',true);
+      }
+      try{localStorage.setItem('taki100_google_oauth_client_id',clientId);}catch{}
+      const startSave=async()=>{
+        adminSave.disabled=true;adminSave.textContent='保存中…';adminMessage('Googleスプレッドシートへ保存しています…');
+        try{await adminSaveToSheet();}
+        catch(e){adminMessage('保存できませんでした：'+(e?.message||String(e))+'\nGoogleアカウントの編集権限とAPI設定を確認してください。',true);}
+        finally{adminSave.disabled=false;if(adminSave.textContent!=='保存済み ✓')adminSave.textContent='Googleで認証して保存';}
+      };
+      if(adminAccessToken && Date.now()<adminTokenExpiresAt-60000){void startSave();return;}
+      if(!window.google?.accounts?.oauth2){adminMessage('Googleの認証ライブラリを読み込めませんでした。Safari/Chromeで再読み込みしてください。',true);return;}
+      try{
+        adminTokenClient=google.accounts.oauth2.initTokenClient({
+          client_id:clientId,scope:ADMIN_OAUTH_SCOPE,
+          callback:result=>{
+            if(result?.error||!result?.access_token){adminMessage('Googleの認証が完了しませんでした：'+(result?.error||'応答なし'),true);return;}
+            adminAccessToken=result.access_token;
+            adminTokenExpiresAt=Date.now()+1000*Number(result.expires_in||3000);
+            void startSave();
+          },error_callback:()=>adminMessage('認証ポップアップが閉じられました。もう一度保存を押してください。',true)
+        });
+        adminMessage('Googleアカウントを選び、スプレッドシートへのアクセスを許可してください。');
+        adminTokenClient.requestAccessToken({prompt:'consent'});
+      }catch(e){adminMessage('Google認証を開始できません：'+(e?.message||String(e)),true);}
+    });
+    // ===== 編集モードここまで =====
 
     // STEP 6：編集中の滝についてだけ、ブラウザ内に記録を保存する。
     document.getElementById('visit-form').addEventListener('submit',event=>{
