@@ -88,9 +88,11 @@
     .legend-dot{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:5px;vertical-align:middle;border:1px solid white;box-shadow:0 0 0 1px #b1bcb3}
     .legend-dot.done{background:#218451}.legend-dot.pending{background:#d5a339}.legend-dot.todo{background:#778799}
     .visit-tag.pending{background:#fff1cf;color:#765211}
-    /* 管理者向け編集モード: ?edit=1 でのみ入口を表示。編集権限はGoogle Sheets側で強制。 */
+    /* 管理者向け編集: ?edit=1 で入口を表示。編集権限はGASの「自分のみ」で強制。 */
     .admin-edit-open{display:none;width:100%;margin-top:12px;cursor:pointer;background:#eef5ef;color:#19583d;border:1px solid #b6d4c0;border-radius:10px;padding:12px;font-weight:700;font-size:13px}
     body.admin-mode .admin-edit-open{display:block}
+    .admin-config-button{display:none;min-height:39px;padding:8px 11px;border-radius:9px;border:1px solid #b6d4c3;background:#eaf4ec;color:#195d43;font-weight:700;font-size:12px;cursor:pointer}
+    body.admin-mode .admin-config-button{display:inline-flex;align-items:center}
     .admin-modal[hidden]{display:none}
     .admin-modal{position:fixed;inset:0;z-index:7000;display:grid;place-items:center;padding:14px;background:rgba(13,37,28,.68)}
     .admin-modal-card{width:min(540px,100%);max-height:min(90vh,860px);overflow:auto;background:#fff;border-radius:18px;box-shadow:0 25px 70px rgba(0,0,0,.25);padding:19px}
@@ -405,6 +407,7 @@
       <span class="visually-hidden">地図のピン <span id="pin-count">—</span>か所</span>
       <span class="visit-summary" id="visit-summary">訪問記録を読み込み中</span>
       <button class="sheet-refresh" id="sheet-refresh" type="button" title="最新の滝情報に更新する" aria-label="滝の情報を更新する">↻ 更新</button>
+      <button class="admin-config-button" id="admin-config-button" type="button">⚙ 編集設定</button>
     </div>
     <div class="notice" id="load-status" role="status" aria-live="polite">滝の情報を読み込み中…</div>
     <!-- 旧CSV選択要素は互換性のため維持。公開画面には表示しない。 -->
@@ -494,7 +497,7 @@
             <a class="button-link primary" id="official-link" href="#" target="_blank" rel="noopener noreferrer" hidden>公式観光情報 ↗</a>
             <a class="button-link" id="map-link" href="#" target="_blank" rel="noopener noreferrer" hidden>Googleマップで参考位置を見る ↗</a>
           </div>
-          <button type="button" class="admin-edit-open" id="admin-edit-open" aria-label="選択した滝のデータを編集">✏️ この滝の記録を編集</button>
+          <button type="button" class="admin-edit-open" id="admin-edit-open" aria-label="選択した滝のデータを編集">✏️ この滝の記録を編集（GAS）</button>
           <div class="credit" id="photo-credit" hidden></div>
         </div>
       </aside>
@@ -505,29 +508,19 @@
       <div class="select-list" id="waterfall-buttons"></div>
 
     </section>
-    <!-- この編集画面はGitHub Pages内で動作。Google OAuthにより編集権限を確認し、Google Sheets APIで更新する。 -->
+    <!-- 初回だけGASのWebアプリURLをこのブラウザへ登録。権限判定はGAS側「自分のみ」で行う。 -->
     <div id="admin-modal" class="admin-modal" hidden>
       <section class="admin-modal-card" role="dialog" aria-modal="true" aria-labelledby="admin-modal-title">
-        <div class="admin-modal-head"><h2 id="admin-modal-title">✏️ 訪問記録の編集</h2><button class="admin-modal-close" id="admin-modal-close" type="button" aria-label="編集画面を閉じる">×</button></div>
-        <p id="admin-waterfall-name" class="admin-modal-note"></p>
-        <form id="admin-edit-form">
-          <div class="admin-modal-grid">
-            <div><label for="admin-progress">攻略状態</label><select id="admin-progress"><option value="訪問済み">訪問済み</option><option value="未訪問">未訪問</option><option value="要確認">要確認</option></select></div>
-            <div><label for="admin-date">訪問日</label><input type="date" id="admin-date"></div>
-            <div><label for="admin-rating">おすすめ度</label><select id="admin-rating"><option value="">未設定</option><option value="1">★</option><option value="2">★★</option><option value="3">★★★</option><option value="4">★★★★</option><option value="5">★★★★★</option></select></div>
-            <div><label for="admin-ease">アクセス快適度</label><input id="admin-ease" maxlength="120" placeholder="例：歩きやすい"></div>
-          </div>
-          <label for="admin-memo">訪問メモ</label><textarea id="admin-memo" maxlength="1000" placeholder="現地の様子・感想など"></textarea>
-          <label for="admin-access">アクセス・詳細</label><textarea id="admin-access" maxlength="2000" placeholder="駐車場・遊歩道・注意点など"></textarea>
-          <label for="admin-photos">写真URL（複数枚は半角 | で区切る）</label><textarea id="admin-photos" maxlength="8000" placeholder="images/taki-001.jpg | images/taki-002.jpg"></textarea>
-          <p class="admin-modal-note">写真ファイル自体のアップロードは別機能です。ここでは登録済み写真のURL・パスを編集します。</p>
-          <details class="admin-modal-settings" id="admin-cloud-settings">
-            <summary>初回のみ：Google連携設定</summary>
-            <label for="admin-client-id">Google OAuth クライアントID</label>
-            <input id="admin-client-id" autocomplete="off" inputmode="url" placeholder="xxxx.apps.googleusercontent.com">
-            <p class="admin-modal-note">Google CloudのOAuthクライアントIDです。公開しても問題ない識別子ですが、Googleアカウントのパスワードやシークレットは絶対に入力しないでください。このブラウザにのみIDを保存します。</p>
-          </details>
-          <button type="submit" id="admin-save" class="admin-modal-save">Googleで認証して保存</button>
+        <div class="admin-modal-head">
+          <h2 id="admin-modal-title">🔗 管理者用ページの設定</h2>
+          <button class="admin-modal-close" id="admin-modal-close" type="button" aria-label="設定画面を閉じる">×</button>
+        </div>
+        <p class="admin-modal-note">初回のみ、Google Apps Scriptで発行した<strong>ウェブアプリURL（末尾 /exec）</strong>を登録してください。Google CloudのクライアントIDは不要です。</p>
+        <form id="admin-url-form">
+          <label for="admin-gas-url">GASウェブアプリのURL</label>
+          <input type="url" id="admin-gas-url" inputmode="url" autocomplete="off" placeholder="https://script.google.com/macros/s/.../exec" required>
+          <p class="admin-modal-note">このURLは今使っている端末・ブラウザ内にのみ保存します。閲覧者が編集できないよう、GASは必ず「アクセスできるユーザー：自分のみ」で公開してください。</p>
+          <button type="submit" class="admin-modal-save">登録して編集ページを開く</button>
           <p id="admin-edit-message" class="admin-modal-message" role="status" aria-live="polite"></p>
         </form>
       </section>
@@ -567,10 +560,9 @@
       <summary>データ更新状況を確認</summary>
       <p id="data-sync-info" aria-live="polite">Googleスプレッドシートへ接続中です。</p>
       <p id="data-sync-errors" hidden></p>
-      <p>表示プログラム：2026-11-24 同期診断版</p>
+      <p>表示プログラム：2026-11-26 GAS編集対応版</p>
     </details>
   </footer>
-  <script async defer src="https://accounts.google.com/gsi/client"></script>
   <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"
           integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="anonymous"></script>
   <script>
@@ -1859,165 +1851,73 @@
       catch(e){console.warn(e);infoStatus('位置情報を読み込めませんでした。',true);}
     });
 
-    // ===== オーナー用 Web 編集: ?edit=1 をURLに付けると詳細に編集ボタン表示 =====
-    // このクエリは表示制御のみ。実際の編集権限は Google OAuth + Google Sheets API が判断する。
+    // ===== GASを利用した編集モード（Google Cloud OAuth / Sheets API直呼びは不要） =====
+    // ?edit=1 はボタンの表示制御のみ。GASのアクセス権「自分のみ」が本当の認証。
     const isAdminView=new URLSearchParams(window.location.search).get('edit')==='1';
     if(isAdminView)document.body.classList.add('admin-mode');
-    const ADMIN_SHEET_ID='1ztyW4gSMfNM1LdMyjV6KwAZTSqZBSSnpRC-3pVEioqo';
-    const ADMIN_SHEET_GID=1469396044;
-    const ADMIN_OAUTH_SCOPE='https://www.googleapis.com/auth/spreadsheets';
-    let adminAccessToken='';
-    let adminTokenExpiresAt=0;
-    let adminTokenClient=null;
-    let adminEditId=null;
-    const $admin=id=>document.getElementById(id);
-    const adminModal=$admin('admin-modal');
-    const adminClose=$admin('admin-modal-close');
-    const adminSave=$admin('admin-save');
-    const adminMsg=$admin('admin-edit-message');
-    function adminMessage(msg,err=false){adminMsg.textContent=msg;adminMsg.classList.toggle('error',err);}
-    try{$admin('admin-client-id').value=localStorage.getItem('taki100_google_oauth_client_id')||'';}catch{}
+    const GAS_URL_STORAGE_KEY='taki100_owner_gas_webapp_url';
+    let adminPendingNumber=null;
+    const gasModal=document.getElementById('admin-modal');
+    const gasUrlInput=document.getElementById('admin-gas-url');
+    const gasMsg=document.getElementById('admin-edit-message');
+    function validGASUrl(text){
+      try{
+        const url=new URL(String(text||'').trim());
+        return url.protocol==='https:'&&url.hostname==='script.google.com'&&
+          /^\/macros\/s\/[^/]+\/exec\/?$/.test(url.pathname)&&!url.username&&!url.password;
+      }catch{return false;}
+    }
+    function savedGASUrl(){
+      try{const s=localStorage.getItem(GAS_URL_STORAGE_KEY)||'';return validGASUrl(s)?s:'';}catch{return '';}
+    }
+    function showGASSetup(number){
+      adminPendingNumber=number;
+      gasUrlInput.value=savedGASUrl();
+      gasMsg.textContent='';gasMsg.classList.remove('error');
+      gasModal.hidden=false;document.body.style.overflow='hidden';
+      setTimeout(()=>gasUrlInput.focus(),25);
+    }
+    function hideGASSetup(){gasModal.hidden=true;document.body.style.overflow='';}
+    function openGASEditor(number,execUrl){
+      const link=new URL(execUrl);
+      if(number)link.searchParams.set('id',String(number));
+      // 別サイトにログイン情報を送るのではなく、GAS自身にGoogleログインを任せる。
+      window.location.assign(link.toString());
+    }
     function openAdminEditor(){
       if(!isAdminView)return;
       const w=waterfalls.find(item=>item.id===selectedId);
       if(!fullCSVLoaded||!w||!w.id.startsWith('map-')){
-        alert('Googleの滝100件データを読み込んでから、編集する滝を選んでください。');return;
+        alert('Googleの滝100件データを読み込んでから、編集したい滝を選んでください。');return;
       }
-      adminEditId=w.id;
-      $admin('admin-waterfall-name').textContent=w.name+'（'+w.prefecture+' / No.'+w.number+'）';
-      $admin('admin-progress').value=visited(w)?'訪問済み':pendingVisit(w)?'要確認':'未訪問';
-      $admin('admin-date').value=getVisit(w)?.date||'';
-      $admin('admin-rating').value=getVisit(w)?.rating?String(getVisit(w).rating):'';
-      $admin('admin-ease').value=w.accessEase||'';
-      $admin('admin-memo').value=w.editableMemo||'';
-      $admin('admin-access').value=w.editableAccess||'';
-      $admin('admin-photos').value=w.editablePhoto||'';
-      $admin('admin-cloud-settings').open=!$admin('admin-client-id').value;
-      adminMessage('');
-      adminModal.hidden=false;
-      document.body.style.overflow='hidden';
-      setTimeout(()=>$admin('admin-progress').focus(),25);
+      const execUrl=savedGASUrl();
+      if(execUrl)openGASEditor(w.number,execUrl);
+      else showGASSetup(w.number);
     }
-    function closeAdminEditor(){adminModal.hidden=true;adminEditId=null;document.body.style.overflow='';}
-    $admin('admin-edit-open').addEventListener('click',openAdminEditor);
-    adminClose.addEventListener('click',closeAdminEditor);
-    adminModal.addEventListener('click',event=>{if(event.target===adminModal)closeAdminEditor();});
-    document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!adminModal.hidden){event.stopImmediatePropagation();closeAdminEditor();}});
-    function adminClientId(){return $admin('admin-client-id').value.trim();}
-    async function adminAPI(path,init={}){
-      const r=await fetch('https://sheets.googleapis.com/v4/spreadsheets/'+ADMIN_SHEET_ID+path,{
-        ...init, headers:{Authorization:'Bearer '+adminAccessToken,...(init.body?{'Content-Type':'application/json'}:{})}
-      });
-      const body=await r.json().catch(()=>({}));
-      if(!r.ok)throw new Error(body.error?.message||'Google Sheets API HTTP '+r.status);
-      return body;
-    }
-    function adminColumn(n){
-      let res='';for(let x=n+1;x>0;x=Math.floor((x-1)/26))res=String.fromCharCode(65+(x-1)%26)+res;
-      return res;
-    }
-    function adminSheetName(title){return "'"+String(title).replace(/'/g,"''")+"'";}
-    async function adminSaveToSheet(){
-      const w=waterfalls.find(item=>item.id===adminEditId);
-      if(!w)throw new Error('編集中の滝が見つかりません。もう一度選択してください。');
-      const progress=$admin('admin-progress').value;
-      const date=$admin('admin-date').value;
-      const rate=$admin('admin-rating').value;
-      const ease=$admin('admin-ease').value.trim();
-      const memo=$admin('admin-memo').value.trim();
-      const access=$admin('admin-access').value.trim();
-      const rawPhotos=$admin('admin-photos').value.trim();
-      const photos=safePhotoList(rawPhotos).join('|');
-      if(rawPhotos && rawPhotos.split('|').map(v=>v.trim()).filter(Boolean).length !== (photos?photos.split('|').length:0))
-        throw new Error('写真URLに使用できない値があります。HTTPSのURLか images/xxx.jpg 形式にしてください。');
-      if(!['訪問済み','未訪問','要確認'].includes(progress))throw new Error('攻略状態が不正です。');
-      if(date&&!/^\d{4}-\d{2}-\d{2}$/.test(date))throw new Error('訪問日を確認してください。');
-      const meta=await adminAPI('?fields=sheets(properties(sheetId,title,gridProperties(columnCount)))');
-      const tabProps=meta.sheets?.find(s=>Number(s.properties?.sheetId)===ADMIN_SHEET_GID)?.properties;
-      const tab=tabProps?.title;
-      if(!tab)throw new Error('指定されたシートIDが見つかりません。');
-      const base=adminSheetName(tab);
-      const sheet=await adminAPI('/values/'+encodeURIComponent(base+'!1:300'));
-      const rows=sheet.values||[];
-      const headers=(rows[0]||[]).map(t=>String(t||'').trim());
-      const col=k=>headers.indexOf(k);
-      const idCol=col('ID'),nameCol=col('滝名');
-      if(idCol<0||nameCol<0)throw new Error('シートにIDまたは滝名の列がありません。');
-      const matches=[];
-      for(let i=1;i<rows.length;i++)if(Number(rows[i][idCol])===w.number && String(rows[i][nameCol]||'').trim()===w.name)matches.push(i);
-      if(matches.length!==1)throw new Error('滝の行を一意に特定できません。IDと滝名を確認してください。');
-      const rowNumber=matches[0]+1;
-      // 既存の19列は保持し、写真URLとおすすめ度が未作成なら安全に右端へ追加する。
-      const createdHeaders=[];
-      for(const key of ['おすすめ度','写真URL']){if(col(key)<0){headers.push(key);createdHeaders.push(key);}}
-      const capacity=Number(tabProps?.gridProperties?.columnCount||26);
-      if(headers.length>capacity){
-        await adminAPI(':batchUpdate',{method:'POST',body:JSON.stringify({requests:[{appendDimension:{sheetId:ADMIN_SHEET_GID,dimension:'COLUMNS',length:headers.length-capacity}}]})});
-      }
-      const updates={
-        '攻略状態（編集用）':progress,
-        '訪問記録状態':progress==='未訪問'?'':'訪問記録あり',
-        '訪問日':date,
-        'おすすめ度':rate,
-        'メモ':memo,
-        'アクセス・詳細':access,
-        'アクセス快適度':ease
-      };
-      updates['写真URL']=photos;
-      const headerData=createdHeaders.map(key=>({range:base+'!'+adminColumn(col(key))+'1',values:[[key]]}));
-      const data=headerData.concat(Object.entries(updates).map(([key,value])=>{
-        const index=col(key);
-        if(index<0)throw new Error('シートに「'+key+'」列がありません。');
-        return {range:base+'!'+adminColumn(index)+rowNumber,values:[[value]]};
-      }));
-      await adminAPI('/values:batchUpdate',{method:'POST',body:JSON.stringify({valueInputOption:'RAW',data})});
-      // 公開CSVへの反映には時間がかかることがあるため、保存成功時は現在の画面を直ちに更新する。
-      w.progressState=progress;
-      w.visitRecordState=updates['訪問記録状態'];
-      w.csvVisit={...w.csvVisit,visited:progress==='訪問済み',date,rating:rate?Number(rate):null,
-        memo:(memo+(w.notionMemo?'\n'+w.notionMemo:'')).trim().slice(0,1000),photo:photos};
-      w.editableMemo=memo;
-      w.editableAccess=access;
-      w.editablePhoto=photos;
-      w.access=access;
-      w.accessEase=ease;
-      drawWaterfalls(waterfalls.slice());
-      adminMessage('保存しました。Googleスプレッドシートへ反映済みです。公開CSVへの反映には少し時間がかかる場合があります。');
-      adminSave.textContent='保存済み ✓';
-      setTimeout(()=>{if(!adminModal.hidden)closeAdminEditor();adminSave.textContent='Googleで認証して保存';},850);
-    }
-    $admin('admin-edit-form').addEventListener('submit',event=>{
+    document.getElementById('admin-edit-open').addEventListener('click',openAdminEditor);
+    document.getElementById('admin-config-button').addEventListener('click',()=>{const w=waterfalls.find(x=>x.id===selectedId);showGASSetup(w?.number||0);});
+    document.getElementById('admin-modal-close').addEventListener('click',hideGASSetup);
+    gasModal.addEventListener('click',event=>{if(event.target===gasModal)hideGASSetup();});
+    document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!gasModal.hidden){event.stopImmediatePropagation();hideGASSetup();}});
+    document.getElementById('admin-url-form').addEventListener('submit',event=>{
       event.preventDefault();
-      if(adminSave.disabled)return;
-      const clientId=adminClientId();
-      if(!/^[\w.-]+\.apps\.googleusercontent\.com$/.test(clientId)){
-        $admin('admin-cloud-settings').open=true;
-        return adminMessage('Google Cloudで発行したOAuth クライアントIDを入力してください。設定方法は付属のガイドをご覧ください。',true);
+      const url=gasUrlInput.value.trim();
+      if(!validGASUrl(url)){
+        gasMsg.textContent='GASの「ウェブアプリURL」（script.google.com/macros/s/…/exec）を貼り付けてください。';
+        gasMsg.classList.add('error');return;
       }
-      try{localStorage.setItem('taki100_google_oauth_client_id',clientId);}catch{}
-      const startSave=async()=>{
-        adminSave.disabled=true;adminSave.textContent='保存中…';adminMessage('Googleスプレッドシートへ保存しています…');
-        try{await adminSaveToSheet();}
-        catch(e){adminMessage('保存できませんでした：'+(e?.message||String(e))+'\nGoogleアカウントの編集権限とAPI設定を確認してください。',true);}
-        finally{adminSave.disabled=false;if(adminSave.textContent!=='保存済み ✓')adminSave.textContent='Googleで認証して保存';}
-      };
-      if(adminAccessToken && Date.now()<adminTokenExpiresAt-60000){void startSave();return;}
-      if(!window.google?.accounts?.oauth2){adminMessage('Googleの認証ライブラリを読み込めませんでした。Safari/Chromeで再読み込みしてください。',true);return;}
-      try{
-        adminTokenClient=google.accounts.oauth2.initTokenClient({
-          client_id:clientId,scope:ADMIN_OAUTH_SCOPE,
-          callback:result=>{
-            if(result?.error||!result?.access_token){adminMessage('Googleの認証が完了しませんでした：'+(result?.error||'応答なし'),true);return;}
-            adminAccessToken=result.access_token;
-            adminTokenExpiresAt=Date.now()+1000*Number(result.expires_in||3000);
-            void startSave();
-          },error_callback:()=>adminMessage('認証ポップアップが閉じられました。もう一度保存を押してください。',true)
-        });
-        adminMessage('Googleアカウントを選び、スプレッドシートへのアクセスを許可してください。');
-        adminTokenClient.requestAccessToken({prompt:'consent'});
-      }catch(e){adminMessage('Google認証を開始できません：'+(e?.message||String(e)),true);}
+      try{localStorage.setItem(GAS_URL_STORAGE_KEY,url);}catch{
+        gasMsg.textContent='このブラウザには設定を保存できませんでした。プライベートモードを解除してください。';
+        gasMsg.classList.add('error');return;
+      }
+      hideGASSetup();
+      openGASEditor(adminPendingNumber,url);
     });
-    // ===== 編集モードここまで =====
+    // URLが変わったときは ?edit=1&setup=1 で登録画面を再度開ける。
+    if(isAdminView&&new URLSearchParams(location.search).get('setup')==='1'){
+      setTimeout(()=>showGASSetup(0),400);
+    }
+
 
     // STEP 6：編集中の滝についてだけ、ブラウザ内に記録を保存する。
     document.getElementById('visit-form').addEventListener('submit',event=>{
