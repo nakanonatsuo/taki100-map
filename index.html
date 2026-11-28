@@ -489,10 +489,13 @@
             <div class="fact"><div class="fact-label">都道府県</div><div class="fact-value" id="detail-prefecture">—</div></div>
           </div>
           <h3>滝の特徴</h3><p class="paragraph" id="detail-description">滝の情報がここに表示されます。</p>
-          <h3>アクセスのヒント</h3><p class="paragraph" id="detail-access">現地の最新情報は自治体・公式観光サイトで確認してください。</p>
+          <p class="source-detail">落差は資料に基づく参考値です。<a id="detail-basic-source" target="_blank" rel="noopener noreferrer" href="#" hidden>落差データの出典 ↗</a></p>
+          <h3>🚗 アクセスのヒント <small style="font-weight:400;color:#789185">（訪問後の記録）</small></h3>
+          <p class="paragraph" id="detail-access">まだ記録がありません。</p>
           <h3>筆者の訪問記録</h3>
           <div class="visit-overview"><span class="visit-tag" id="detail-visited">未訪問</span><span class="visit-meta" id="detail-visit-date">訪問日：未登録</span><span class="visit-meta" id="detail-rating">おすすめ度：未登録</span><span class="visit-meta" id="detail-progress">攻略状態：未確認</span><span class="visit-meta" id="detail-ease">アクセス快適度：未登録</span></div>
-          <h3>筆者のメモ</h3><p class="memo" id="detail-memo">メモはまだありません。</p>
+          <h3>💭 所感</h3><p class="memo" id="detail-memo">まだ記録がありません。</p>
+          <h3>📍 近くのあれこれメモ</h3><p class="memo" id="detail-nearby">まだ記録がありません。</p>
           <div class="links">
             <a class="button-link primary" id="official-link" href="#" target="_blank" rel="noopener noreferrer" hidden>公式観光情報 ↗</a>
             <a class="button-link" id="map-link" href="#" target="_blank" rel="noopener noreferrer" hidden>Googleマップで参考位置を見る ↗</a>
@@ -1113,7 +1116,7 @@
       write('detail-rating','おすすめ度：'+(record?.rating?'★'.repeat(record.rating)+'（'+record.rating+'/5）':'未登録'));
       write('detail-progress','攻略状態：'+(confirmed?'訪問済み':(w.progressState||'未確認')));
       write('detail-ease','アクセス快適度：'+(w.accessEase||'未登録'));
-      write('detail-memo',record?.memo||'メモはまだありません。');
+      write('detail-memo',record?.memo||'まだ記録がありません。訪問後に編集できます。');
     }
 
     function write(id, value){document.getElementById(id).textContent=String(value ?? '');}
@@ -1208,17 +1211,19 @@
         const recordState=val(cols,'訪問記録状態');
         const progress=val(cols,'攻略状態（編集用）');
         const date=val(cols,'訪問日');
-        const memo=val(cols,'メモ');
-        const notionMemo=val(cols,'Notionテキスト欄');
+        const memo=headers.includes('所感')?val(cols,'所感'):val(cols,'メモ');
+        const nearby=val(cols,'近くのあれこれメモ');
         const ease=val(cols,'アクセス快適度');
-        const access=val(cols,'アクセス・詳細');
+        const access=headers.includes('アクセスのヒント')?val(cols,'アクセスのヒント'):val(cols,'アクセス・詳細');
         const rawGoogle=val(cols,'Googleマップ検索URL');
         // 列を追加した場合もサイトに反映。使わない列は空欄のままでOK。
         const publicPhoto=safePhotoList(val(cols,'写真URL')||val(cols,'画像URL')||val(cols,'写真ファイルパス')).join('|');
         const rawRating=val(cols,'おすすめ度');
         const ratingNum=/^★{1,5}$/.test(rawRating)?rawRating.length:Number(rawRating);
         const rating=(rawRating!==''&&Number.isInteger(ratingNum)&&ratingNum>=1&&ratingNum<=5)?ratingNum:null;
-        const summary=val(cols,'紹介文')||val(cols,'滝の特徴');
+        const summary=val(cols,'滝の特徴')||val(cols,'紹介文');
+        const heightText=val(cols,'落差（参考）');
+        const basicSource=val(cols,'落差出典URL');
         let googleUrl='';
         try{
           const u=new URL(rawGoogle);
@@ -1227,21 +1232,21 @@
         const featured=featuredWaterfalls.find(w=>norm(w.name)===norm(name)&&w.prefecture===prefecture);
         output.push({
           id:'map-'+String(number).padStart(3,'0'), number, name, prefecture, city,
-          lat:latitude,lng:longitude, heightText:featured?.height?featured.height+'m':null,
+          lat:latitude,lng:longitude, heightText:heightText||(featured?.height?featured.height+'m':null),
           description:summary||featured?.description||'詳細な紹介文は現在準備中です。',
-          access:access||featured?.access||'', accessEase:ease,
-          sourceUrl:featured?.sourceUrl||null,googleUrl,
+          access, nearby, accessEase:ease,
+          basicSource, sourceUrl:featured?.sourceUrl||null,googleUrl,
           photoUrl:featured?.photoUrl||null,photoPage:featured?.photoPage||null,
           photoAuthor:featured?.photoAuthor||null,photoLicense:featured?.photoLicense||null,
           licenseUrl:featured?.licenseUrl||null,
-          editableMemo:memo, editableAccess:access, editablePhoto:publicPhoto, notionMemo,
+          editableMemo:memo, editableAccess:access, editablePhoto:publicPhoto,
           visitRecordState:recordState,progressState:progress,
           visitOrder:val(cols,'訪問順'),
           csvVisit:{
             // 明示的な訪問済み表記のみを攻略済みにする。訪問日/記録だけでは判断しない。
             visited:['訪問済み','訪問済','攻略済み','攻略済','到達済み','到達済','達成済み'].includes(progress.normalize('NFKC').replace(/[\s　]/g,'')),
             date:normalizeVisitDate(date),
-            rating, memo:(memo+(notionMemo?'\n'+notionMemo:'')).trim().slice(0,1000),photo:publicPhoto
+            rating, memo:memo.trim().slice(0,2500),photo:publicPhoto
           }
         });
       }
@@ -1387,7 +1392,12 @@
       write('detail-prefecture',w.prefecture||'未確認');
       write('detail-height',w.heightText||'未確認');
       write('detail-description',w.description||'詳細情報は準備中です。');
-      write('detail-access',w.access||'アクセス情報は未登録です。現地の最新情報をご確認ください。');
+      write('detail-access',w.access||'まだ記録がありません。訪問後に編集できます。');
+      write('detail-nearby',w.nearby||'まだ記録がありません。訪問後に編集できます。');
+      const basicSourceLink=document.getElementById('detail-basic-source');
+      const validBasicSource=/^https:\/\/[^\s]+$/.test(w.basicSource||'');
+      basicSourceLink.hidden=!validBasicSource;
+      if(validBasicSource)basicSourceLink.href=w.basicSource;
       updateVisitDisplay(w);
       fillEditor(w);
       const official=document.getElementById('official-link');
@@ -1399,10 +1409,7 @@
       // 自分の写真は複数枚表示。自身の写真がある滝は著作権表示が必要な旧画像を混ぜない。
       const ownPhotos=safePhotoList(getVisit(w)?.photo);
       currentPhotoItems=ownPhotos.map(url=>({url,name:w.name,own:true}));
-      if(!currentPhotoItems.length && safePhotoPath(w.photoUrl)){
-        currentPhotoItems=[{url:w.photoUrl,name:w.name,own:false,page:w.photoPage,author:w.photoAuthor,
-          licenseUrl:w.licenseUrl,license:w.photoLicense}];
-      }
+      // 写真は自分の訪問後登録を表示。公開フリー画像の自動差し込みは行わない。
       if(currentPhotoItems.length){showPhotoIndex(0);}
       else{
         ++photoLoadSerial;
@@ -1590,6 +1597,8 @@
       write('detail-description','該当する滝が見つかりませんでした。');
       write('detail-access','—');
       write('detail-memo','—');
+      write('detail-nearby','—');
+      document.getElementById('detail-basic-source').hidden=true;
       write('detail-visited','—');
       write('detail-visit-date','訪問日：—');
       write('detail-rating','おすすめ度：—');
